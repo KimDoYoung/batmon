@@ -34,7 +34,6 @@ def display_root(request: Request):
 async def display_main(request: Request):
     ''' 메인 '''    
     today_str = get_today()
-    stk_code = request.cookies.get("stk_code")
     context = { "request": request,  
                 "path": '/main',
                 "today": today_str,

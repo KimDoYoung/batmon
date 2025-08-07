@@ -9,6 +9,7 @@ from backend.core.config import config
 from backend.api.v1.endpoints.home_routes import router as home_router
 
 from backend.core.exception_handler import add_exception_handlers
+from backend.core.batmon_db import create_batmon_db  # Add this import (adjust path if needed)
 
 
 logger = get_logger(__name__)
