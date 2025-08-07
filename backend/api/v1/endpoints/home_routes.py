@@ -38,7 +38,7 @@ async def display_main(request: Request):
                 "path": '/main',
                 "today": today_str,
                 "data": {
-                    "title": "배치프로그램 모니터링"
+                    "title": "종합상황",
                 }
     }    
     return render_template("main.html", context)
