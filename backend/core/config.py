@@ -4,6 +4,7 @@ class Config:
     def __init__(self):
         self.PROFILE_NAME = os.getenv('BATMON_MODE', 'local')
         load_dotenv(dotenv_path=f'.env.{self.PROFILE_NAME}')
+        self.VERSION = os.getenv('VERSION', '0.0.1')
         # PORT 설정
         self.PORT = int(os.getenv('PORT', 8002))
         

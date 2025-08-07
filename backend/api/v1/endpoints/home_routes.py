@@ -10,6 +10,7 @@
 """
 from fastapi import APIRouter, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
+from backend.core.config import config
 from backend.core.logger import get_logger
 from backend.core.template_engine import render_template
 from backend.domains.page_contexts.context_registry import PAGE_CONTEXT_PROVIDERS
@@ -32,9 +33,12 @@ def display_root(request: Request):
 
 @router.get("/main", response_class=HTMLResponse, include_in_schema=False)
 async def display_main(request: Request):
-    ''' 메인 '''    
+    ''' 메인 '''
+    logger.debug("메인 페이지 요청됨")
+    version = config.VERSION    
     context = { "request": request,  
                 "path": '/main',
+                "_version": version,
                 "data": {
                     "title": "종합상황",
                 }
@@ -53,7 +57,9 @@ async def page(
     
     page_page = path.lstrip('/')
     page_path = page_page if page_page else "main"
+    version = config.VERSION
     context = { 
+                "_version": "0.0.1",
                 "request": request,  
                 "page_path": page_path,
                 **extra_params
