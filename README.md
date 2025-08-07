@@ -6,11 +6,18 @@
 - 브라우저를 이용해서 서버실 출입을 하지 않고 log보기, 프로그램 실패성공확인, 재실행 수행
 - 윈도우 서비스에 등록해서 실행
 
+## 빌드
+
+- make_exe.sh 
+  - pyinstaller를 사용하여 dist/batmon.exe를 만듬
+  - .env.local을  사용하게 함.
+  - 기본 PORT를 8002로 사용함
+
 ## 기술스택
 
 - python fastapi로 작성
 - window 11 service로 등록해서 동작하게 함. 
-- port 8000 사용
+- port 8002 사용
 - pip대신 uv를 사용
 
 ### backend
