@@ -1,6 +1,6 @@
-<nav class="navbar navbar-expand-lg" style="background-color:#c8f097;">
+<nav class="navbar navbar-expand-lg" style="background-color:#c8f097;" x-data="navData()">
     <div class="container-fluid">
-        <strong><a class="navbar-brand ms-3" href="/main">배치모니터링(Batmon)-{{data.title | default('주식매매') }}</a></strong>
+        <strong><a class="navbar-brand ms-3" href="/main">배치모니터링(Batmon)-{{data.title}}</a></strong>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>
@@ -26,6 +26,7 @@
 
                 </li>
             </ul>
+            {% include "common/nav_right.html" %}
         </div>
     </div>
 </nav>

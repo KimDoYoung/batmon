@@ -1,0 +1,17 @@
+<ul class="navbar-nav ms-auto">
+    {% if page_path %}
+    <li class="nav-item">
+        <!-- 다른 새로고침 아이콘 -->
+        page_path:[{{page_path}}]
+        <a href="/page?path={{page_path}}" class="nav-link text-primary" title="새로고침">
+            <i class="fas fa-redo-alt"></i>새로고침
+        </a>
+    </li>
+    {% endif %}
+    <li class="nav-item">
+        <!-- 다른 날짜 아이콘 -->
+        <span class="nav-link text-primary">
+            <i class="fas fa-clock me-1"></i><span x-text="currentTime">{{today}}</span>
+        </span>
+    </li>
+</ul>

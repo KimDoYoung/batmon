@@ -22,7 +22,7 @@ def get_today():
     weekdays = ["월", "화", "수", "목", "금", "토", "일"]
     today = datetime.now()
     weekday_str = weekdays[today.weekday()]
-    return datetime.now().strftime("%Y-%m-%d") + f" ({weekday_str})"
+    return datetime.now().strftime("%Y-%m-%d %H:%M:%S") + f" ({weekday_str})"
 
 @router.get("/", response_class=HTMLResponse, include_in_schema=False)
 def display_root(request: Request):
@@ -33,10 +33,8 @@ def display_root(request: Request):
 @router.get("/main", response_class=HTMLResponse, include_in_schema=False)
 async def display_main(request: Request):
     ''' 메인 '''    
-    today_str = get_today()
     context = { "request": request,  
                 "path": '/main',
-                "today": today_str,
                 "data": {
                     "title": "종합상황",
                 }
@@ -53,12 +51,15 @@ async def page(
     extra_params = {k: v for k, v in request.query_params.items()}
 
     
-    today = get_today()
-    context = { "request": request,  
-                "today": today,
-                **extra_params}
+    page_page = path.lstrip('/')
+    page_path = page_page if page_page else "main"
+    context = { 
+                "request": request,  
+                "page_path": page_path,
+                **extra_params
+            }
 
-    func = PAGE_CONTEXT_PROVIDERS.get(path.strip('/'))
+    func = PAGE_CONTEXT_PROVIDERS.get(page_path)
     if func:
         try:
             # 호출가능한 aysnc 함수인지 확인 수행하여 결과를 data에 담는다

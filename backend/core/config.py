@@ -5,7 +5,7 @@ class Config:
         self.PROFILE_NAME = os.getenv('BATMON_MODE', 'local')
         load_dotenv(dotenv_path=f'.env.{self.PROFILE_NAME}')
         # PORT 설정
-        self.PORT = int(os.getenv('PORT', 8000))
+        self.PORT = int(os.getenv('PORT', 8002))
         
         # BASE_DIR 설정
         self.BASE_DIR = os.getenv('BASE_DIR', 'c:\\batmon')

@@ -80,6 +80,6 @@ app = create_app()
 
 if __name__ == "__main__":
     import uvicorn
-    logger.info("batmon : Batch Program 모니터링")
-    port = config.PORT
+    port = getattr(config, "PORT", 8002)
+    logger.info("batmon : Batch Program 모니터링, FastAPI 서버 시작 on port %s", port)
     uvicorn.run(app, host="0.0.0.0", port=port)
