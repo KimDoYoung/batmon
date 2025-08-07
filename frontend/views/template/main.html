@@ -1,0 +1,152 @@
+{% extends "common/base.html" %}
+
+{% block content %}
+<div x-data="orderForm()" class="container mt-4">
+
+  <form @submit.prevent="submit" class="row g-3 needs-validation" novalidate>
+    <!-- 국내거래소구분 -->
+    <div class="col-md-6">
+      <label class="form-label">국내거래소구분</label>
+      <select class="form-select" x-model="dmst_stex_tp" required>
+        <option value="">선택...</option>
+        <option value="KRX">KRX</option>
+        <option value="NXT">NXT</option>
+        <option value="SOR">SOR</option>
+      </select>
+    </div>
+
+    <!-- 종목코드 -->
+    <div class="col-md-6">
+      <label class="form-label">종목코드</label>
+      <input type="text" class="form-control" x-model="stk_cd" maxlength="12" required>
+    </div>
+
+    <!-- 주문수량 -->
+    <div class="col-md-6">
+      <label class="form-label">주문수량</label>
+      <input type="text" class="form-control" x-model="ord_qty" maxlength="12" required>
+    </div>
+
+    <!-- 주문단가 -->
+    <div class="col-md-6">
+      <label class="form-label">주문단가</label>
+      <input type="text" class="form-control" x-model="ord_uv" maxlength="12">
+    </div>
+
+    <!-- 매매구분 -->
+    <div class="col-md-12">
+      <label class="form-label">매매구분</label>
+      <select class="form-select" x-model="trde_tp" required>
+        <option value="">선택...</option>
+        <option value="0">보통</option>
+        <option value="3">시장가</option>
+        <option value="5">조건부지정가</option>
+        <option value="6">최유리지정가</option>
+        <option value="7">최우선지정가</option>
+        <option value="10">보통(IOC)</option>
+        <option value="13">시장가(IOC)</option>
+        <option value="16">최유리(IOC)</option>
+        <option value="20">보통(FOK)</option>
+        <option value="23">시장가(FOK)</option>
+        <option value="26">최유리(FOK)</option>
+        <option value="28">스톱지정가</option>
+        <option value="29">중간가</option>
+        <option value="30">중간가(IOC)</option>
+        <option value="31">중간가(FOK)</option>
+        <option value="61">장시작전시간외</option>
+        <option value="62">시간외단일가</option>
+        <option value="81">장마감후시간외</option>
+      </select>
+    </div>
+
+    <!-- 조건단가 -->
+    <div class="col-md-6">
+      <label class="form-label">조건단가</label>
+      <input type="text" class="form-control" x-model="cond_uv" maxlength="12">
+    </div>
+
+    <!-- 전송 결과 -->
+    <div class="col-12">
+      <button type="submit" class="btn btn-primary">주문 전송</button>
+    </div>
+
+    <div class="col-12" x-show="result" x-text="result" class="mt-2 text-success fw-bold"></div>
+    <div class="col-12" x-show="error" x-text="error" class="mt-2 text-danger fw-bold"></div>
+  </form>
+
+  <!-- 결과 표시 영역 -->
+  <div class="mt-4" x-show="result || error">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="card-title mb-0">처리 결과</h5>
+      </div>
+      <div class="card-body">
+        <!-- 성공 메시지 -->
+        <div x-show="result" class="alert alert-success" role="alert">
+          <i class="bi bi-check-circle-fill me-2"></i>
+          <span x-text="result"></span>
+        </div>
+        
+        <!-- 에러 메시지 -->
+        <div x-show="error" class="alert alert-danger" role="alert">
+          <i class="bi bi-exclamation-triangle-fill me-2"></i>
+          <span x-text="error"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function orderForm() {
+    return {
+      dmst_stex_tp: 'KRX',
+      stk_cd: '',
+      ord_qty: '1',
+      ord_uv: '',
+      trde_tp: '3',
+      cond_uv: '',
+      result: '',
+      error: '',
+
+      async submit() {
+        this.result = '';
+        this.error = '';
+        try {
+          const payload = {
+            dmst_stex_tp: this.dmst_stex_tp,
+            stk_cd: this.stk_cd,
+            ord_qty: this.ord_qty,
+            ord_uv: this.ord_uv || null,
+            trde_tp: this.trde_tp,
+            cond_uv: this.cond_uv || null,
+          };
+
+          // fetch-util.js의 callKiwoomApi 함수 사용
+          const response = await callKiwoomApi('kt10000', payload);
+
+          if (response.success) {
+            this.result = response.data.return_msg || '주문이 성공적으로 처리되었습니다.';
+            console.log('주문 응답:', response.data);
+          } else {
+            throw new Error(response.error_message || '알 수 없는 오류가 발생했습니다.');
+          }
+        } catch (err) {
+          if (err instanceof KiwiError) {
+            this.error = `에러 ${err.status}: ${err.message}`;
+          } else {
+            this.error = '에러: ' + err.message;
+          }
+          console.error('주문 처리 오류:', err);
+        }
+      }
+    };
+  }
+</script>
+    
+{% endblock %}
+
+{% block script %}
+<!-- <script src="/public/js/fetch-util.js"></script> -->
+<script src="/public/js/main.js"></script>
+{% endblock %}

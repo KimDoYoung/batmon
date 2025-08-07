@@ -11,6 +11,7 @@
 - python fastapi로 작성
 - window 11 service로 등록해서 동작하게 함. 
 - port 8000 사용
+- pip대신 uv를 사용
 
 ### backend
 - uvicorn

@@ -1,0 +1,5 @@
+2025-08-07 10:11:39,470 - __main__ - ERROR - Error setting up templates/static files: jinja2 must be installed to use Jinja2Templates
+2025-08-07 10:11:39,470 - __main__ - INFO - Starting FastAPI Test Service...
+2025-08-07 10:11:39,683 - __main__ - INFO - FastAPI Test Service started
+2025-08-07 10:11:39,685 - __main__ - INFO - Base path: C:\Users\PC\work\batmon\backend
+2025-08-07 10:11:39,685 - __main__ - INFO - Is frozen (packaged): False
