@@ -7,6 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from backend.core.logger import get_logger
 from backend.core.config import config
 from backend.api.v1.endpoints.home_routes import router as home_router
+from backend.api.v1.endpoints.batmon_routes import router as batmon_router
 
 from backend.core.exception_handler import add_exception_handlers
 from backend.core.batmon_db import create_batmon_db  # Add this import (adjust path if needed)
@@ -26,6 +27,7 @@ def create_app() -> FastAPI:
 def add_routes(app: FastAPI):
     # API 라우터 포함
     app.include_router(home_router) # 화면
+    app.include_router(batmon_router, prefix="/batmon", tags=["batmon"])
 
 def add_event_handlers(app: FastAPI):
     ''' 이벤트 핸들러 설정 '''
@@ -46,8 +48,11 @@ def add_static_files(app: FastAPI):
 async def startup_event():
     ''' Batmon application  시작 '''
     logger.info('---------------------------------')
-    logger.info('▶️Startup 프로세스 시작')
+    logger.info('▶️  Startup 프로세스 시작')
     logger.info('---------------------------------')
+
+    config.reload_yaml(force=True)
+    logger.info(f"현재 BATMON.yml 로딩함...")
 
     db_path = config.DB_PATH 
     parent_dir = os.path.dirname(db_path)
@@ -55,25 +60,23 @@ async def startup_event():
     if not os.path.exists(parent_dir):
         logger.info(f"DB 디렉토리가 존재하지 않습니다. 생성합니다: {parent_dir}")
         os.makedirs(parent_dir, exist_ok=True)
-    if not os.path.exists(db_path):
-        logger.info(f"DB 파일이 존재하지 않습니다. 생성합니다: {db_path}")
         # Batmon DB 생성
-        create_batmon_db(db_path)
+    create_batmon_db(db_path)
 
     logger.info(f"DB 파일 경로: {db_path}")
     logger.info(f"로그 파일 경로: {config.LOG_FILE}")
     logger.info('---------------------------------')
-    logger.info('◀️Startup 프로세스 종료')
+    logger.info('◀️  Startup 프로세스 종료')
     logger.info('---------------------------------')    
 
 async def shutdown_event():
     ''' Batmon application 종료 '''
     logger.info('---------------------------------')
-    logger.info('▶️Shutdown 프로세스 시작')
+    logger.info('▶️  Shutdown 프로세스 시작')
     logger.info('---------------------------------')
     logger.info("Batmon application 종료 중...")    
     logger.info('---------------------------------')
-    logger.info('◀️Shutdown 프로세스 종료')
+    logger.info('◀️  Shutdown 프로세스 종료')
     logger.info('---------------------------------')
 
 app = create_app()

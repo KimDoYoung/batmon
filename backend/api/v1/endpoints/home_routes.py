@@ -40,7 +40,7 @@ async def display_main(request: Request):
                 "path": '/main',
                 "_version": version,
                 "data": {
-                    "title": "종합상황",
+                    "title": "Dashboard",
                 }
     }    
     return render_template("main.html", context)
