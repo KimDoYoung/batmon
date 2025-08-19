@@ -120,9 +120,10 @@
             <dl class="row small mb-0">
               <dt class="col-5 text-muted">스케줄러</dt><dd class="col-7" x-text="svc.scheduler"></dd>
               <dt class="col-5 text-muted">실행시간</dt><dd class="col-7"><span class="mono" x-text="(svc.run_time || []).join(', ') || '-'"></span></dd>
-              <dt class="col-5 text-muted">기준 폴더</dt><dd class="col-7"><span class="mono" x-text="svc.base_dir"></span></dd>
+              <dt class="col-5 text-muted">설치 폴더</dt><dd class="col-7"><span class="mono" x-text="svc.base_dir"></span></dd>
               <dt class="col-5 text-muted">최근 로그</dt><dd class="col-7"><span class="mono" x-text="svc.last_log || '-'"></span></dd>
               <dt class="col-5 text-muted">갱신 시각</dt><dd class="col-7" x-text="fmtTime(svc.last_updated)"></dd>
+              <!-- TODO 최근로그파일, 최근로그시각 -->
             </dl>
 
             <div class="mt-auto pt-3 d-flex gap-2">

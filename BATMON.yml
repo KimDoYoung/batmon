@@ -13,7 +13,7 @@ programs:
     run_time : ["0630", "1830"]
 
   - name : "fund_mail"
-    description: "펀드메일 수집 프로그램, 5분단위로 수집"
+    description: "펀드메일 수집 프로그램"
     base_dir: "c:\\fund_mail"
     scheduler: "window service"
     run_time : ["5분간격"]
