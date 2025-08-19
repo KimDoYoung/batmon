@@ -22,11 +22,11 @@ class AutoEsafeService(BaseService):
             logger.info("auto_esafe 서비스 상태 체크시작")
             # 기본 디렉토리 존재 여부 확인
             if not os.path.exists(self.base_dir):
-                return self.error_status(f"설치 폴더가 없습니다.: {self.base_dir}")
+                return self.error_status(f"설치 폴더가 존재하지 않습니다.: {self.base_dir}")
             logger.info("설치 폴더 확인 완료")
             # 로그폴더가 있는지 체크
             if not os.path.exists(self.log_dir):
-                return self.error_status(f"로그 폴더가 없습니다.: {self.log_dir}")
+                return self.error_status(f"로그 폴더가 존재하지 않습니다.: {self.log_dir}")
             logger.info("로그 폴더 확인 완료")
 
             # 로그 파일이 있는지 체크 

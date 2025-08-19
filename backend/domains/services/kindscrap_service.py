@@ -1,10 +1,13 @@
+from datetime import datetime
 import os
 import subprocess
 from typing import Optional
 
 from backend.domains.schemas import ServiceStatus
 from backend.domains.services.base_service import BaseService
+from backend.core.logger import get_logger
 
+logger = get_logger(__name__)
 
 class KindscrapService(BaseService):
     def __init__(self, program_name: str = "kindscrap"):
@@ -15,35 +18,41 @@ class KindscrapService(BaseService):
         Kindscrap 서비스의 상태를 체크합니다.
         """
         try:
+            logger.info("kindscrap 서비스 상태 체크 시작")
             # 기본 디렉토리 존재 여부 확인
             if not os.path.exists(self.base_dir):
-                return self.error_status(f"Base directory not found: {self.base_dir}")
-            
+                return self.error_status(f"설치 폴더가 존재하지 않습니다: {self.base_dir}")
+            logger.info("설치 폴더 확인 완료")
             # 로그 파일 확인
             last_log = self._get_last_log()
             
-            # 스케줄러 작업 상태 확인
-            if self._check_scheduler_task():
-                return self.success_status("Kindscrap는 정상동작 중입니다.", last_log)
+            if not os.path.exists(self.log_dir):
+                return self.error_status(f"로그 폴더가 존재하지 않습니다: {self.log_dir}")
+
+            last_log_file = self._get_last_log()
+
+            if not last_log_file:
+                return self.error_status(f"로그 파일을 찾을 수 없습니다. {self.log_dir}")
+            
+            result = self.result_of_logfile(last_log_file)
+            if result == "ERROR":
+                return self.error_status(f"로그 파일에서 오류를 발견했습니다: {last_log_file}")
             else:
-                return self.warning_status("Scheduler task may not be configured or running", last_log)
+                return self.success_status("kindscrap 정상동작 중입니다")   
             
         except Exception as e:
             return self.error_status(f"Error checking service: {str(e)}")
     
     def _get_last_log(self) -> Optional[str]:
         """마지막 로그를 가져옵니다."""
-        log_file = os.path.join(self.base_dir, "logs", "kindscrap.log")
-        
+        ymd = datetime.now().strftime('%Y_%m_%d')
+        filename = f"kindscrap_{ymd}.log"
+        log_file = os.path.join(self.log_dir,  filename)
+
         if not os.path.exists(log_file):
             return None
             
-        try:
-            with open(log_file, 'r', encoding='utf-8') as f:
-                lines = f.readlines()
-                return lines[-1].strip() if lines else None
-        except Exception as e:
-            return f"Error reading log file: {str(e)}"
+        return log_file
     
     def _check_scheduler_task(self) -> bool:
         """
