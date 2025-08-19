@@ -21,3 +21,5 @@ class HealthCheckResponse(BaseModel):
     services: List[ServiceStatus]
     summary: str
     total_services: int
+    ok_count: int
+    error_count: int
