@@ -4,7 +4,7 @@ import os
 from typing import Optional
 
 from backend.core.config import config
-from backend.domains.schemas import ServiceStatus
+from backend.domains.batmon_schema import ServiceStatus
 
 
 class BaseService(ABC):

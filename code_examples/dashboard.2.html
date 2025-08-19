@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>시스템 모니터링 대시보드</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <style>
+        .system-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .service-card {
+            transition: all 0.3s ease;
+            border: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border-radius: 15px;
+        }
+        
+        .service-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        
+        .status-ok {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-left: 5px solid #28a745;
+        }
+        
+        .status-error {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+            border-left: 5px solid #dc3545;
+        }
+        
+        .progress-custom {
+            height: 8px;
+            border-radius: 10px;
+        }
+        
+        .metric-icon {
+            font-size: 2rem;
+            opacity: 0.8;
+        }
+        
+        .last-updated {
+            font-size: 0.8rem;
+            opacity: 0.7;
+        }
+        
+        .service-header {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        
+        .scheduler-badge {
+            font-size: 0.7rem;
+        }
+        
+        .run-time-badge {
+            font-size: 0.7rem;
+            margin: 2px;
+        }
+        
+        .refresh-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 50px;
+            padding: 8px 20px;
+            transition: all 0.3s ease;
+        }
+        
+        .refresh-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .summary-card {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            border-radius: 15px;
+        }
+        
+        .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .5; }
+        }
+        
+        .status-icon {
+            font-size: 1.2rem;
+        }
+    </style>
+</head>
+<body class="bg-light" x-data="systemMonitor()">
+    <div class="container-fluid py-4">
+        <!-- 헤더 -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h1 class="h3 mb-0 text-dark">
+                            <i class="fas fa-desktop me-2"></i>
+                            시스템 모니터링 대시보드
+                        </h1>
+                        <p class="text-muted mb-0" x-text="'마지막 업데이트: ' + lastUpdated"></p>
+                    </div>
+                    <button class="btn refresh-btn text-white" 
+                            @click="refreshData()" 
+                            :disabled="isLoading">
+                        <i class="fas" :class="isLoading ? 'fa-sync fa-spin' : 'fa-sync'"></i>
+                        <span x-text="isLoading ? '새로고침 중...' : '새로고침'"></span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 시스템 정보 카드 -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card system-card">
+                    <div class="card-body p-4">
+                        <div class="row">
+                            <div class="col-md-3 mb-3">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-desktop metric-icon me-3"></i>
+                                    <div>
+                                        <h6 class="mb-1">시스템</h6>
+                                        <p class="mb-0 opacity-75" x-text="systemInfo.os"></p>
+                                        <small class="opacity-50" x-text="systemInfo.hostname"></small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-2 mb-3">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-microchip metric-icon me-3"></i>
+                                    <div>
+                                        <h6 class="mb-1">CPU</h6>
+                                        <p class="mb-0" x-text="systemInfo.cpu_usage + '%'"></p>
+                                        <div class="progress progress-custom mt-1">
+                                            <div class="progress-bar bg-light" 
+                                                 :style="'width: ' + systemInfo.cpu_usage + '%'"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-2 mb-3">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-memory metric-icon me-3"></i>
+                                    <div>
+                                        <h6 class="mb-1">메모리</h6>
+                                        <p class="mb-0" x-text="systemInfo.memory_used + ' / ' + systemInfo.memory_total"></p>
+                                        <div class="progress progress-custom mt-1">
+                                            <div class="progress-bar bg-light" 
+                                                 :style="'width: ' + getMemoryPercent() + '%'"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-2 mb-3">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-hdd metric-icon me-3"></i>
+                                    <div>
+                                        <h6 class="mb-1">디스크</h6>
+                                        <p class="mb-0" x-text="getDiskUsed() + ' / ' + systemInfo.disk_total"></p>
+                                        <div class="progress progress-custom mt-1">
+                                            <div class="progress-bar bg-light" 
+                                                 :style="'width: ' + getDiskPercent() + '%'"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-wifi metric-icon me-3"></i>
+                                    <div>
+                                        <h6 class="mb-1">네트워크</h6>
+                                        <p class="mb-0" x-text="systemInfo.ip_address"></p>
+                                        <small class="opacity-50" x-text="systemInfo.mac_address"></small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-power-off me-2"></i>
+                                        <span>부팅 시간: </span>
+                                        <strong x-text="systemInfo.boot_time"></strong>
+                                    </div>
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-clock me-2"></i>
+                                        <span>가동 시간: </span>
+                                        <strong x-text="getUptime()"></strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 서비스 상태 요약 -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card summary-card text-center">
+                    <div class="card-body">
+                        <i class="fas fa-list-check h1 mb-2"></i>
+                        <h4 x-text="healthCheck.total_services"></h4>
+                        <p class="mb-0">총 서비스</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card bg-success text-white text-center">
+                    <div class="card-body">
+                        <i class="fas fa-check-circle h1 mb-2"></i>
+                        <h4 x-text="healthCheck.ok_count"></h4>
+                        <p class="mb-0">정상 운영</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card bg-danger text-white text-center">
+                    <div class="card-body">
+                        <i class="fas fa-times-circle h1 mb-2"></i>
+                        <h4 x-text="healthCheck.error_count"></h4>
+                        <p class="mb-0">오류</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 서비스 상태 카드들 -->
+        <div class="row">
+            <template x-for="service in healthCheck.services" :key="service.name">
+                <div class="col-md-4 mb-4">
+                    <div class="card service-card h-100" 
+                         :class="{
+                             'status-ok text-white': service.status === 'OK',
+                             'status-error text-white': service.status === 'ERROR'
+                         }">
+                        <div class="card-body">
+                            <!-- 서비스 헤더 -->
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <div class="service-header">
+                                    <h5 class="card-title mb-1 d-flex align-items-center">
+                                        <i class="fas status-icon me-2"
+                                           :class="{
+                                               'fa-check-circle text-success': service.status === 'OK',
+                                               'fa-times-circle text-danger': service.status === 'ERROR'
+                                           }"></i>
+                                        <span x-text="service.name"></span>
+                                    </h5>
+                                    <p class="card-text mb-2 opacity-75" x-text="service.description"></p>
+                                </div>
+                                <span class="badge" 
+                                      :class="{
+                                          'bg-success': service.status === 'OK',
+                                          'bg-danger': service.status === 'ERROR'
+                                      }"
+                                      x-text="service.status">
+                                </span>
+                            </div>
+
+                            <!-- 상태 메시지 -->
+                            <div class="mb-3">
+                                <p class="mb-2" x-text="service.message"></p>
+                                <div x-show="service.last_log" class="mt-2">
+                                    <small class="opacity-75">
+                                        <i class="fas fa-file-alt me-1"></i>
+                                        <span x-text="service.last_log"></span>
+                                    </small>
+                                </div>
+                            </div>
+
+                            <!-- 서비스 정보 -->
+                            <div class="mb-3">
+                                <div class="row g-2 mb-2">
+                                    <div class="col-6">
+                                        <small class="opacity-75">
+                                            <i class="fas fa-folder me-1"></i>
+                                            <span x-text="service.base_dir"></span>
+                                        </small>
+                                    </div>
+                                    <div class="col-6">
+                                        <span class="badge scheduler-badge"
+                                              :class="{
+                                                  'bg-light text-dark': service.status === 'OK',
+                                                  'bg-light text-dark': service.status === 'ERROR'
+                                              }"
+                                              x-text="service.scheduler">
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <!-- 실행 시간 -->
+                                <div x-show="service.run_time && service.run_time.length > 0">
+                                    <small class="opacity-75 mb-1 d-block">
+                                        <i class="fas fa-clock me-1"></i>
+                                        실행 시간:
+                                    </small>
+                                    <template x-for="time in service.run_time" :key="time">
+                                        <span class="badge run-time-badge me-1"
+                                              :class="{
+                                                  'bg-light text-dark': service.status === 'OK',
+                                                  'bg-light text-dark': service.status === 'ERROR'
+                                              }"
+                                              x-text="formatTime(time)">
+                                        </span>
+                                    </template>
+                                </div>
+                            </div>
+
+                            <!-- 마지막 업데이트 시간 -->
+                            <div class="d-flex justify-content-between align-items-end">
+                                <small class="last-updated" x-show="service.last_updated">
+                                    <i class="fas fa-sync me-1"></i>
+                                    <span x-text="formatDateTime(service.last_updated)"></span>
+                                </small>
+                                <button class="btn btn-sm btn-outline-light" 
+                                        @click="checkService(service.name)"
+                                        x-show="service.status === 'ERROR'">
+                                    <i class="fas fa-sync me-1"></i>
+                                    재확인
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </div>
+
+    <script>
+        function systemMonitor() {
+            return {
+                isLoading: false,
+                lastUpdated: new Date().toLocaleString('ko-KR'),
+                systemInfo: {
+                    'boot_time': '2025-08-18 09:03:42',
+                    'cpu': 'Intel64 Family 6 Model 140 Stepping 1, GenuineIntel',
+                    'cpu_cores': 8,
+                    'cpu_usage': 8.4,
+                    'disk_free': '165 GB',
+                    'disk_total': '475 GB',
+                    'hostname': 'KDY-3560',
+                    'ip_address': '192.168.0.15',
+                    'mac_address': 'b4:0e:de:81:79:a4',
+                    'memory_total': '63 GB',
+                    'memory_used': '19 GB',
+                    'os': 'Windows 10 (10.0.26100)'
+                },
+                healthCheck: {
+                    timestamp: new Date().toISOString(),
+                    overall_status: 'OK',
+                    total_services: 3,
+                    ok_count: 2,
+                    error_count: 1,
+                    services: [
+                        {
+                            name: 'kindscrap',
+                            description: '공시 스크래핑 프로그램',
+                            status: 'OK',
+                            message: '정상 동작 중입니다.',
+                            last_log: '공시 데이터 100건 수집 완료',
+                            last_updated: '2025-08-19T14:30:00',
+                            base_dir: 'c:\\kindscrap',
+                            scheduler: 'taskschd.msc',
+                            run_time: ['0130']
+                        },
+                        {
+                            name: 'auto_esafe',
+                            description: 'esafe프로그램 구동, 필요한 파일 다운로드, 하루 2번 동작 실행',
+                            status: 'ERROR',
+                            message: '마지막 실행에서 오류가 발생했습니다.',
+                            last_log: 'Connection timeout error',
+                            last_updated: '2025-08-19T06:30:00',
+                            base_dir: 'c:\\auto_esafe',
+                            scheduler: 'taskschd.msc',
+                            run_time: ['0630', '1830']
+                        },
+                        {
+                            name: 'fund_mail',
+                            description: '펀드메일 수집 프로그램, 5분단위로 수집',
+                            status: 'OK',
+                            message: '정상 동작 중입니다.',
+                            last_log: '메일 50건 처리 완료',
+                            last_updated: '2025-08-19T14:25:00',
+                            base_dir: 'c:\\fund_mail',
+                            scheduler: 'window service',
+                            run_time: []
+                        }
+                    ]
+                },
+
+                refreshData() {
+                    this.isLoading = true;
+                    
+                    // API 호출 시뮬레이션
+                    setTimeout(() => {
+                        // 여기에 실제 API 호출 로직을 구현
+                        // fetch('/api/system-info') 등
+                        this.lastUpdated = new Date().toLocaleString('ko-KR');
+                        this.isLoading = false;
+                        
+                        // 예시: CPU 사용률 랜덤 업데이트
+                        this.systemInfo.cpu_usage = Math.round(Math.random() * 30 + 5);
+                    }, 2000);
+                },
+
+                checkService(serviceName) {
+                    // 특정 서비스 상태 재확인
+                    console.log('Checking service:', serviceName);
+                },
+
+                getMemoryPercent() {
+                    const used = parseInt(this.systemInfo.memory_used);
+                    const total = parseInt(this.systemInfo.memory_total);
+                    return Math.round((used / total) * 100);
+                },
+
+                getDiskUsed() {
+                    const free = parseInt(this.systemInfo.disk_free);
+                    const total = parseInt(this.systemInfo.disk_total);
+                    return (total - free) + ' GB';
+                },
+
+                getDiskPercent() {
+                    const free = parseInt(this.systemInfo.disk_free);
+                    const total = parseInt(this.systemInfo.disk_total);
+                    return Math.round(((total - free) / total) * 100);
+                },
+
+                getUptime() {
+                    const bootTime = new Date(this.systemInfo.boot_time);
+                    const now = new Date();
+                    const diff = now - bootTime;
+                    
+                    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                    
+                    return `${days}일 ${hours}시간`;
+                },
+
+                formatTime(time) {
+                    if (!time || time.length !== 4) return time;
+                    return time.substring(0, 2) + ':' + time.substring(2, 4);
+                },
+
+                formatDateTime(datetime) {
+                    if (!datetime) return '';
+                    return new Date(datetime).toLocaleString('ko-KR');
+                }
+            }
+        }
+    </script>
+</body>
+</html>

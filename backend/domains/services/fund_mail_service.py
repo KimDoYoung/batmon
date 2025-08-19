@@ -3,7 +3,7 @@ import subprocess
 from datetime import datetime
 from typing import Optional
 
-from backend.domains.schemas import ServiceStatus
+from backend.domains.batmon_schema import ServiceStatus
 from backend.domains.services.base_service import BaseService
 from backend.core.logger import get_logger
 
@@ -45,7 +45,7 @@ class FundMailService(BaseService):
             last_file_datetime = self._parse_filename_to_datetime(last_file) if last_file else None
             # last_file_datetime이 지금 시각과 10분 이상 차이가 나면 error
             if last_file_datetime and (datetime.now() - last_file_datetime).total_seconds() > 600:
-                return self.error_status(f"최근 파일의 시간 차이가 10분을 초과합니다.: {last_file}, 시간: {last_file_datetime}")
+                return self.error_status(f"최근 파일의 시간 차이가 10분을 초과합니다.: 마지막 파일: {last_file}, 시간: {last_file_datetime}")
             else:
                 return self.success_status("Fund Mail 서비스가 정상적으로 동작 중입니다.")
 

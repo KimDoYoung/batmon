@@ -1,5 +1,16 @@
-{% extends "common/base.html" %}
-{% block style %}
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <title>BATMON 대시보드</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Bootstrap 5 CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+
+  <!-- Alpine.js -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
   <style>
     .stat-kv .key { color:#6c757d; width: 140px; }
     .card-status-ok    { border-left: 6px solid var(--bs-success); }
@@ -7,68 +18,57 @@
     .card-status-err   { border-left: 6px solid var(--bs-danger);  }
     .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", "Courier New", monospace; }
   </style>
-{% endblock %}
-{% block content %}
-<div class="container py-4" x-data="batmonDashboard()">
+</head>
+<body>
+<div class="container py-4" x-data="batmonDashboard()" x-init="init()">
+
   <!-- 헤더 / 액션 -->
-    <div class="d-flex align-items-center justify-content-between mb-2">
-        <h1 class="h4 mb-0">스케줄링 PC 모니터링</h1>
-        
-        <div class="d-flex align-items-center gap-3">
-            <div class="form-check form-switch mb-0">
-                <input class="form-check-input" type="checkbox" id="autoRefresh1" x-model="autoRefresh">
-                <label class="form-check-label" for="autoRefresh1">자동 새로고침(30s)</label>
-            </div>
-            
-            <button class="btn btn-sm btn-outline-primary btn-refresh"
-                    @click="refresh()" 
-                    :disabled="loading">
-                <template x-if="!loading">
-                    <span class="d-inline-flex align-items-center">
-                        <i class="fas fa-sync-alt me-1"></i> 새로고침
-                    </span>
-                </template>
-                <template x-if="loading">
-                    <span class="d-inline-flex align-items-center">
-                        <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
-                        로딩…
-                    </span>
-                </template>
-            </button>
-        </div>
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <h1 class="h4 m-0">스케줄링 PC 모니터링 대시보드</h1>
+    <div class="d-flex gap-2">
+      <div class="form-check form-switch align-self-center">
+        <input class="form-check-input" type="checkbox" id="autoRefresh" x-model="autoRefresh">
+        <label class="form-check-label" for="autoRefresh">자동 새로고침(30s)</label>
+      </div>
+      <button class="btn btn-outline-primary btn-sm" @click="refresh()" :disabled="loading">
+        <template x-if="!loading">새로고침</template>
+        <template x-if="loading"><span class="spinner-border spinner-border-sm me-1"></span>로딩…</template>
+      </button>
     </div>
+  </div>
+
   <!-- 상단: PC / OS 요약 카드 -->
   <div class="card mb-4">
     <div class="card-body">
       <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
         <div>
           <div class="d-flex align-items-center gap-2 mb-1">
-            <h2 class="h5 mb-0" x-text="system?.os?.hostname || 'HOSTNAME'"></h2>
-            <span class="badge text-bg-secondary" x-text="system?.os?.descriptions || 'OS'"></span>
+            <h2 class="h5 mb-0" x-text="system.hostname || 'HOSTNAME'"></h2>
+            <span class="badge text-bg-secondary" x-text="system.os || 'OS'"></span>
           </div>
           <div class="text-muted small">
-            부팅: <span x-text="fmtTime(system?.stats?.boot_time) || '-'"></span> 
-            · 경과시간 : <span class="mono" x-text="system?.stats?.uptime_human || '-'"></span>
-          </div>
-          <div class="text-muted small">
-            IP: <span class="mono" x-text="system?.network?.ip || '-'"></span>
-            · MAC: <span class="mono" x-text="system?.network?.mac || '-'"></span>
+            부팅: <span x-text="system.boot_time || '-'"></span>
+            · IP: <span class="mono" x-text="system.ip_address || '-'"></span>
+            · MAC: <span class="mono" x-text="system.mac_address || '-'"></span>
           </div>
         </div>
+
         <div class="row w-100 mt-2 g-3">
           <div class="col-12 col-md-4">
-            <div class="stat-kv d-flex"><div class="key">CPU</div><div class="flex-grow-1 mono" x-text="system?.cpu?.processor || '-'"></div></div>
-            <div class="stat-kv d-flex">
-              <div class="key">물리/논리 코어</div>
+            <div class="stat-kv d-flex"><div class="key">CPU</div><div class="flex-grow-1 mono" x-text="system.cpu || '-'"></div></div>
+            <div class="stat-kv d-flex"><div class="key">코어</div><div class="flex-grow-1" x-text="system.cpu_cores ?? '-'"></div></div>
+            <div class="stat-kv d-flex align-items-center">
+              <div class="key">사용률</div>
               <div class="flex-grow-1">
-                <span x-text="system?.cpu?.physical_cores ?? '-'"></span> / 
-                <span x-text="system?.cpu?.logical_cores ?? '-'"></span> 
+                <div class="progress" role="progressbar" :aria-valuenow="Math.round(cpuUsage())" aria-valuemin="0" aria-valuemax="100">
+                  <div class="progress-bar" :style="`width:${cpuUsage()}%`" x-text="`${Math.round(cpuUsage())}%`"></div>
+                </div>
               </div>
             </div>
           </div>
 
           <div class="col-12 col-md-4">
-            <div class="stat-kv d-flex"><div class="key">메모리</div><div class="flex-grow-1" x-text="`${system.memory?.used_gb || '-'} / ${system.memory?.total_gb || '-'} GB`"></div></div>
+            <div class="stat-kv d-flex"><div class="key">메모리</div><div class="flex-grow-1" x-text="`${system.memory_used || '-'} / ${system.memory_total || '-'}`"></div></div>
             <div class="progress mt-1" role="progressbar" :aria-valuenow="Math.round(memUsedPct())" aria-valuemin="0" aria-valuemax="100">
               <div class="progress-bar" :style="`width:${memUsedPct()}%`" x-text="`${Math.round(memUsedPct())}%`"></div>
             </div>
@@ -76,7 +76,7 @@
 
           <div class="col-12 col-md-4">
             <div class="stat-kv d-flex"><div class="key">디스크</div>
-              <div class="flex-grow-1" x-text="`${system.disk?.used_gb} / ${system?.disk?.total_gb || '-'} GB`"></div>
+              <div class="flex-grow-1" x-text="`${diskUsedHuman()} / ${system.disk_total || '-'}`"></div>
             </div>
             <div class="progress mt-1" role="progressbar" :aria-valuenow="Math.round(diskUsedPct())" aria-valuemin="0" aria-valuemax="100">
               <div class="progress-bar" :style="`width:${diskUsedPct()}%`" x-text="`${Math.round(diskUsedPct())}%`"></div>
@@ -90,8 +90,8 @@
         <span class="badge" :class="overallBadgeClass()" x-text="`전체 상태: ${health.overall_status || '-'}`"></span>
         <span class="badge text-bg-light">총 서비스: <span x-text="health.total_services ?? '-'"></span></span>
         <span class="badge text-bg-success">OK: <span x-text="health.ok_count ?? '-'"></span></span>
-        <span class="badge text-bg-danger" x-show="health.error_count && health.error_count > 0">ERROR: <span x-text="health.error_count"></span></span>
-        <span class="ms-auto text-muted small">기준 시각: <span x-text="fmtTime(health.timestamp) || '-'"></span></span>
+        <span class="badge text-bg-danger">ERROR: <span x-text="health.error_count ?? '-'"></span></span>
+        <span class="ms-auto text-muted small">기준 시각: <span x-text="health.timestamp || '-'"></span></span>
       </div>
     </div>
   </div>
@@ -136,74 +136,71 @@
   </div>
 
 </div>
-    
-{% endblock %}
 
-{% block script %}
 <script>
 function batmonDashboard() {
-  const SYSTEM_INFO_URL = '/api/v1/system/info';
-  const BATMON_CHECK = '/api/v1/batmon/check';
+  const SYS_URL = '/api/system/info';
+  const HEALTH_URL = '/api/health';
 
   // 샘플 폴백 데이터 (질문에서 제공)
   const fallbackSystem = {
-    // boot_time: '2025-XX-XX 00:00:42',
-    // cpu: 'Intel64 Family 6 Model 140 Stepping 1, GenuineIntel',
-    // cpu_cores: 8,
-    // cpu_usage: 8.4,
-    // disk_free: '165 GB',
-    // disk_total: '475 GB',
-    // hostname: 'KDY-3560',
-    // ip_address: '192.168.0.15',
-    // mac_address: 'b4:0e:de:81:79:a4',
-    // memory_total: '63 GB',
-    // memory_used: '19 GB',
-    // os: 'Windows 10 (10.0.26100)',
+    boot_time: '2025-08-18 09:03:42',
+    cpu: 'Intel64 Family 6 Model 140 Stepping 1, GenuineIntel',
+    cpu_cores: 8,
+    cpu_usage: 8.4,
+    disk_free: '165 GB',
+    disk_total: '475 GB',
+    hostname: 'KDY-3560',
+    ip_address: '192.168.0.15',
+    mac_address: 'b4:0e:de:81:79:a4',
+    memory_total: '63 GB',
+    memory_used: '19 GB',
+    os: 'Windows 10 (10.0.26100)',
   };
 
   // 예시 HealthCheckResponse 폴백
   const fallbackHealth = {
-    // timestamp: new Date().toISOString().slice(0,19).replace('T',' '),
-    // overall_status: 'OK',
-    // summary: '정상 동작',
-    // total_services: 3,
-    // ok_count: 2,
-    // error_count: 1,
-    // services: [
-    //   {
-    //     name: 'kindscrap',
-    //     description: '공시 스크래핑 프로그램<TEST>',
-    //     status: 'OK',
-    //     message: '마지막 실행 성공',
-    //     last_log: 'kindscrap_2025_08_19.log',
-    //     last_updated: new Date().toISOString(),
-    //     base_dir: 'C:\\kindscrap',
-    //     scheduler: 'taskschd.msc',
-    //     run_time: ['0600']
-    //   },
-    //   {
-    //     name: 'auto_esafe',
-    //     description: 'esafe문서 다운로드',
-    //     status: 'OK',
-    //     message: '오전/저녁 작업 성공',
-    //     last_log: 'auto_esafe_2025_08_19.log',
-    //     last_updated: new Date().toISOString(),
-    //     base_dir: 'C:\\auto_esafe',
-    //     scheduler: 'taskschd.msc',
-    //     run_time: ['0700','1830']
-    //   },
-    //   {
-    //     name: 'fund_mail',
-    //     description: '펀드메일 수집 서비스',
-    //     status: 'ERROR',
-    //     message: '최근 1회 수집 실패 (인증 오류)',
-    //     last_log: 'fund_mail_2025_08_19.log',
-    //     last_updated: new Date().toISOString(),
-    //     base_dir: 'C:\\fund_mail',
-    //     scheduler: 'window service',
-    //     run_time: ['*/5m']
-    //   }
-    // ]
+    timestamp: new Date().toISOString().slice(0,19).replace('T',' '),
+    overall_status: 'OK',
+    summary: '정상 동작',
+    total_services: 3,
+    ok_count: 2,
+    error_count: 1,
+    services: [
+      {
+        name: 'kindscrap',
+        description: '공시 스크래핑 프로그램',
+        status: 'OK',
+        message: '마지막 실행 성공',
+        last_log: 'kindscrap_2025_08_19.log',
+        last_updated: new Date().toISOString(),
+        base_dir: 'C:\\kindscrap',
+        scheduler: 'taskschd.msc',
+        run_time: ['0600']
+      },
+      {
+        name: 'auto_esafe',
+        description: 'esafe문서 다운로드',
+        status: 'OK',
+        message: '오전/저녁 작업 성공',
+        last_log: 'auto_esafe_2025_08_19.log',
+        last_updated: new Date().toISOString(),
+        base_dir: 'C:\\auto_esafe',
+        scheduler: 'taskschd.msc',
+        run_time: ['0700','1830']
+      },
+      {
+        name: 'fund_mail',
+        description: '펀드메일 수집 서비스',
+        status: 'ERROR',
+        message: '최근 1회 수집 실패 (인증 오류)',
+        last_log: 'fund_mail_2025_08_19.log',
+        last_updated: new Date().toISOString(),
+        base_dir: 'C:\\fund_mail',
+        scheduler: 'window service',
+        run_time: ['*/5m']
+      }
+    ]
   };
 
   return {
@@ -215,48 +212,33 @@ function batmonDashboard() {
     health: {},
 
     init() {
-        console.log('Batmon 대시보드 초기화');
-        this.refresh();
-        this.$watch('autoRefresh', (on) => {
-            if (on) {
-            this._timer = setInterval(() => this.refresh(), 30000);
-            } else if (this._timer) {
-            clearInterval(this._timer);
-            this._timer = null;
-            }
-        });
+      this.refresh();
+      this.$watch('autoRefresh', (on) => {
+        if (on) {
+          this._timer = setInterval(() => this.refresh(), 30000);
+        } else if (this._timer) {
+          clearInterval(this._timer);
+          this._timer = null;
+        }
+      });
     },
 
     async refresh() {
-        this.loading = true;
-        try {
-            const [sys, health] = await Promise.all([
-                getFetch(SYSTEM_INFO_URL).catch(error => {
-                    console.error('System info fetch failed:', error);
-                    return null; // 또는 fallbackSystem
-                }),
-                getFetch(BATMON_CHECK).catch(error => {
-                    console.error('Health check fetch failed:', error);
-                    return null; // 또는 fallbackHealth
-                }),
-            ]);
-            if(sys){
-                console.log(sys);
-            }
-            if(health){
-                console.log(health);
-            }
-            this.system = sys || fallbackSystem;
-            this.health = health || fallbackHealth;
-            
-        } catch (e) {
-            console.error('Refresh failed:', e);
-            // 폴백
-            this.system = fallbackSystem;
-            this.health = fallbackHealth;
-        } finally {
-            this.loading = false;
-        }
+      this.loading = true;
+      try {
+        const [sys, health] = await Promise.all([
+          fetch(SYS_URL).then(r => r.ok ? r.json() : Promise.reject('sys')),
+          fetch(HEALTH_URL).then(r => r.ok ? r.json() : Promise.reject('health')),
+        ]);
+        this.system = sys || fallbackSystem;
+        this.health = health || fallbackHealth;
+      } catch (e) {
+        // 폴백
+        this.system = fallbackSystem;
+        this.health = fallbackHealth;
+      } finally {
+        this.loading = false;
+      }
     },
 
     // ===== 표시 유틸 =====
@@ -271,21 +253,21 @@ function batmonDashboard() {
       return isNaN(v) ? 0 : Math.max(0, Math.min(100, v));
     },
     memUsedPct() {
-      const usedGB = this.parseNumberFromHuman(this.system?.memory?.used_gb);
-      const totalGB = this.parseNumberFromHuman(this.system?.memory?.total_gb);
+      const usedGB = this.parseNumberFromHuman(this.system.memory_used);
+      const totalGB = this.parseNumberFromHuman(this.system.memory_total);
       if (!isFinite(usedGB) || !isFinite(totalGB) || totalGB <= 0) return 0;
       return (usedGB / totalGB) * 100;
     },
     diskUsedPct() {
-      const freeGB  = this.parseNumberFromHuman(this.system?.disk?.free_gb);
-      const totalGB = this.parseNumberFromHuman(this.system?.disk?.total_gb);
+      const freeGB  = this.parseNumberFromHuman(this.system.disk_free);
+      const totalGB = this.parseNumberFromHuman(this.system.disk_total);
       if (!isFinite(freeGB) || !isFinite(totalGB) || totalGB <= 0) return 0;
       const usedGB = totalGB - freeGB;
       return (usedGB / totalGB) * 100;
     },
     diskUsedHuman() {
-      const freeGB  = this.parseNumberFromHuman(this.system?.disk?.free_gb);
-      const totalGB = this.parseNumberFromHuman(this.system?.disk?.total_gb);
+      const freeGB  = this.parseNumberFromHuman(this.system.disk_free);
+      const totalGB = this.parseNumberFromHuman(this.system.disk_total);
       if (!isFinite(freeGB) || !isFinite(totalGB) || totalGB <= 0) return '-';
       const usedGB = totalGB - freeGB;
       return `${usedGB.toFixed(0)} GB`;
@@ -328,4 +310,8 @@ function batmonDashboard() {
   };
 }
 </script>
-{% endblock %}
+
+<!-- Bootstrap JS (선택) -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

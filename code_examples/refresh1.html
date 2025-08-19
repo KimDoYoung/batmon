@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>새로고침 버튼 개선</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs/3.13.0/cdn.min.js" defer></script>
+    <style>
+        .btn-refresh {
+            min-width: 110px; /* 버튼 크기 고정 */
+            transition: all 0.2s ease;
+        }
+        
+        /* 스피너 애니메이션 개선 */
+        .spinner-border-sm {
+            width: 1rem;
+            height: 1rem;
+        }
+        
+        /* Alpine.js 전환 효과 */
+        [x-cloak] {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4" x-data="{ 
+        autoRefresh: false, 
+        loading: false,
+        refresh() {
+            this.loading = true;
+            // 실제 새로고침 로직
+            setTimeout(() => {
+                this.loading = false;
+                console.log('새로고침 완료');
+            }, 2000);
+        }
+    }">
+        
+        <!-- 방법 1: FontAwesome 사용 (권장) -->
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <h1 class="h4 mb-0">스케줄링 PC 모니터링 (FontAwesome)</h1>
+            
+            <div class="d-flex align-items-center gap-3">
+                <div class="form-check form-switch mb-0">
+                    <input class="form-check-input" type="checkbox" id="autoRefresh1" x-model="autoRefresh">
+                    <label class="form-check-label" for="autoRefresh1">자동 새로고침(30s)</label>
+                </div>
+                
+                <button class="btn btn-outline-primary btn-refresh"
+                        @click="refresh()" 
+                        :disabled="loading">
+                    <template x-if="!loading">
+                        <span class="d-inline-flex align-items-center">
+                            <i class="fas fa-sync-alt me-1"></i> 새로고침
+                        </span>
+                    </template>
+                    <template x-if="loading">
+                        <span class="d-inline-flex align-items-center">
+                            <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                            로딩…
+                        </span>
+                    </template>
+                </button>
+            </div>
+        </div>
+
+        <hr>
+
+        <!-- 방법 2: Bootstrap Icons 사용 -->
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <h1 class="h4 mb-0">스케줄링 PC 모니터링 (Bootstrap Icons)</h1>
+            
+            <div class="d-flex align-items-center gap-3">
+                <div class="form-check form-switch mb-0">
+                    <input class="form-check-input" type="checkbox" id="autoRefresh2" x-model="autoRefresh">
+                    <label class="form-check-label" for="autoRefresh2">자동 새로고침(30s)</label>
+                </div>
+                
+                <button class="btn btn-outline-primary btn-refresh"
+                        @click="refresh()" 
+                        :disabled="loading">
+                    <span x-cloak x-show="!loading" class="d-inline-flex align-items-center">
+                        <svg width="16" height="16" fill="currentColor" class="me-1" viewBox="0 0 16 16">
+                            <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
+                            <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
+                        </svg>
+                        새로고침
+                    </span>
+                    <span x-cloak x-show="loading" class="d-inline-flex align-items-center">
+                        <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                        로딩…
+                    </span>
+                </button>
+            </div>
+        </div>
+
+        <hr>
+
+        <!-- 방법 3: 텍스트만 사용 (가장 안전) -->
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <h1 class="h4 mb-0">스케줄링 PC 모니터링 (텍스트만)</h1>
+            
+            <div class="d-flex align-items-center gap-3">
+                <div class="form-check form-switch mb-0">
+                    <input class="form-check-input" type="checkbox" id="autoRefresh3" x-model="autoRefresh">
+                    <label class="form-check-label" for="autoRefresh3">자동 새로고침(30s)</label>
+                </div>
+                
+                <button class="btn btn-outline-primary btn-refresh"
+                        @click="refresh()" 
+                        :disabled="loading">
+                    <span x-text="loading ? '로딩…' : '새로고침'"></span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 상태 표시 -->
+        <div class="alert alert-info">
+            <strong>상태:</strong> 
+            <span x-text="loading ? '로딩 중...' : '대기 중'"></span>
+        </div>
+    </div>
+</body>
+</html>

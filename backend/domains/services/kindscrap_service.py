@@ -3,7 +3,7 @@ import os
 import subprocess
 from typing import Optional
 
-from backend.domains.schemas import ServiceStatus
+from backend.domains.batmon_schema import ServiceStatus
 from backend.domains.services.base_service import BaseService
 from backend.core.logger import get_logger
 

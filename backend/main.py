@@ -8,7 +8,7 @@ from backend.core.logger import get_logger
 from backend.core.config import config
 from backend.api.v1.endpoints.home_routes import router as home_router
 from backend.api.v1.endpoints.batmon_routes import router as batmon_router
-
+from backend.api.v1.endpoints.system_routes import router as system_router
 from backend.core.exception_handler import add_exception_handlers
 from backend.core.batmon_db import create_batmon_db  # Add this import (adjust path if needed)
 
@@ -27,7 +27,8 @@ def create_app() -> FastAPI:
 def add_routes(app: FastAPI):
     # API 라우터 포함
     app.include_router(home_router) # 화면
-    app.include_router(batmon_router, prefix="/batmon", tags=["batmon"])
+    app.include_router(batmon_router, prefix="/api/v1/batmon", tags=["batmon"])
+    app.include_router(system_router, prefix="/api/v1/system", tags=["system"])
 
 def add_event_handlers(app: FastAPI):
     ''' 이벤트 핸들러 설정 '''

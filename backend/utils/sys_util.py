@@ -1,35 +1,130 @@
 import os
 import platform, socket, uuid, psutil, datetime
 from typing import Iterable
+from datetime import datetime, timedelta, timezone
 
-def get_system_info():
-    info = {}
-    # OS / Host
-    info["os"] = f"{platform.system()} {platform.release()} ({platform.version()})"
-    info["hostname"] = socket.gethostname()
-    
-    # Network
-    info["ip_address"] = socket.gethostbyname(socket.gethostname())
-    info["mac_address"] = ':'.join(['{:02x}'.format((uuid.getnode() >> i) & 0xff) 
-                                    for i in range(0, 8*6, 8)][::-1])
-    
-    # CPU / Memory
-    info["cpu"] = platform.processor()
-    info["cpu_cores"] = psutil.cpu_count(logical=True)
-    info["cpu_usage"] = psutil.cpu_percent(interval=1)
+from backend.domains.system_schema import CPUInfo, DiskInfo, MemoryInfo, NetworkInfo, OSInfo, SystemStats, SystemSummary
+# 앞서 정의한 모델이 같은 모듈/패키지에 있다고 가정
+# from .models import OSInfo, CPUInfo, MemoryInfo, DiskInfo, NetworkInfo, SystemStats, SystemSummary
+
+try:
+    from zoneinfo import ZoneInfo
+    KST = ZoneInfo("Asia/Seoul")
+except Exception:
+    KST = timezone(timedelta(hours=9))
+
+def _bytes_to_gb(n: int) -> float:
+    return round(n / (1024 ** 3), 2)
+
+def _humanize_tdelta(seconds: int) -> str:
+    d, rem = divmod(seconds, 86400)
+    h, rem = divmod(rem, 3600)
+    m, s = divmod(rem, 60)
+    return (f"{d} day, {h}:{m:02d}:{s:02d}" if d == 1
+            else f"{d} days, {h}:{m:02d}:{s:02d}" if d > 1
+            else f"{h}:{m:02d}:{s:02d}")
+
+def _get_primary_ip() -> str:
+    # 더 안정적인 로컬 IP 취득 (게이트웨이로 UDP connect)
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except Exception:
+        try:
+            return socket.gethostbyname(socket.gethostname())
+        except Exception:
+            return "0.0.0.0"
+
+def _get_mac() -> str:
+    node = uuid.getnode()
+    return ":".join(f"{(node >> i) & 0xff:02x}" for i in range(40, -1, -8))
+
+def get_system_info() -> "SystemSummary":
+    # ---- OS / Host ----
+    system = platform.system()                      # e.g., 'Windows'
+    release = platform.release()                    # e.g., '10' or '11'
+    version = platform.version()                    # e.g., '10.0.26100'
+    architecture = platform.architecture()[0]       # e.g., '64bit'
+    hostname = socket.gethostname()
+
+    os_info = OSInfo(
+        system=system,
+        release=release,
+        version=version,
+        architecture=architecture,
+        hostname=hostname,
+        descriptions = f"{system} {release} {version} ({architecture})",
+    )
+
+    # ---- Network ----
+    ip = _get_primary_ip()
+    mac = _get_mac()
+    net_info = NetworkInfo(ip=ip, mac=mac)
+
+    # ---- CPU ----
+    cpu_info = CPUInfo(
+        processor=platform.processor(),
+        physical_cores=psutil.cpu_count(logical=False) or None,
+        logical_cores=psutil.cpu_count(logical=True) or None,
+        usage_percent=float(psutil.cpu_percent(interval=1)),
+    )
+
+    # ---- Memory ----
     mem = psutil.virtual_memory()
-    info["memory_total"] = f"{mem.total // (1024**3)} GB"
-    info["memory_used"] = f"{mem.used // (1024**3)} GB"
-    
-    # Disk
-    disk = psutil.disk_usage("C:\\")
-    info["disk_total"] = f"{disk.total // (1024**3)} GB"
-    info["disk_free"] = f"{disk.free // (1024**3)} GB"
-    
-    # Boot
-    info["boot_time"] = datetime.datetime.fromtimestamp(psutil.boot_time()).strftime("%Y-%m-%d %H:%M:%S")
-    
-    return info
+    mem_total_gb = _bytes_to_gb(mem.total)
+    mem_used_gb = _bytes_to_gb(mem.used)
+    mem_avail_gb = _bytes_to_gb(mem.available)
+    mem_used_pct = round((mem.used / mem.total) * 100, 1) if mem.total else 0.0
+
+    mem_info = MemoryInfo(
+        total_gb=mem_total_gb,
+        used_gb=mem_used_gb,
+        available_gb=mem_avail_gb,
+        used_percent=mem_used_pct,
+    )
+
+    # ---- Disk (시스템 드라이브 기준) ----
+    system_drive = os.getenv("SystemDrive", "C:") + "\\"
+    d = psutil.disk_usage(system_drive)
+    disk_total_gb = _bytes_to_gb(d.total)
+    disk_free_gb = _bytes_to_gb(d.free)
+    disk_used_gb = _bytes_to_gb(d.used)
+    disk_used_pct = round(d.percent, 1)
+
+    disk_info = DiskInfo(
+        device=system_drive,
+        total_gb=disk_total_gb,
+        used_gb=disk_used_gb,
+        free_gb=disk_free_gb,
+        used_percent=disk_used_pct,
+    )
+
+    # ---- Stats (부팅/업타임) ----
+    boot_dt1 = datetime.fromtimestamp(psutil.boot_time(), tz=KST)
+    now = datetime.now(KST)
+    uptime_seconds = max(0, int((now - boot_dt1).total_seconds()))
+    # boot_dt = boot_dt1.strftime("%Y-%m-%d %H:%M:%S %Z")
+
+    stats = SystemStats(
+        boot_time=boot_dt1,
+        uptime_seconds=uptime_seconds,
+        uptime_human=_humanize_tdelta(uptime_seconds),
+    )
+
+    # ---- Summary ----
+    summary = SystemSummary(
+        os=os_info,
+        cpu=cpu_info,
+        memory=mem_info,
+        disk=disk_info,
+        network=net_info,
+        stats=stats,
+    )
+
+    return summary
 
 
 def format_bytes(n: int) -> str:

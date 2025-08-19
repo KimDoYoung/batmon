@@ -1,20 +1,21 @@
 import datetime
-from logging import config
-from backend.core.logger import get_logger
-from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse
 
-from backend.domains.schemas import HealthCheckResponse
+from backend.core.logger import get_logger
+from fastapi import APIRouter
+from datetime import datetime, timezone, timedelta
+from backend.domains.batmon_schema import HealthCheckResponse
 from backend.domains.services.auto_esafe import AutoEsafeService
 from backend.domains.services.fund_mail_service import FundMailService
 from backend.domains.services.kindscrap_service import KindscrapService
+from backend.core.config import config 
 
 logger = get_logger(__name__)
 
-router = APIRouter()
+KST = timezone(timedelta(hours=9))
 
-@router.get("/", response_class=HTMLResponse, include_in_schema=False)
-def check(request: Request):
+router = APIRouter()
+@router.get("/check", response_model=HealthCheckResponse, include_in_schema=True)
+def check():
     ''' 3개의 프로그램에 대해서 현재의 상황을 리포트한다. '''
     programs = config.list_programs()
     services = []
@@ -47,7 +48,7 @@ def check(request: Request):
         summary = "모든 서비스가 정상적으로 동작 중입니다."
     
     return HealthCheckResponse(
-        timestamp=datetime.now(),
+        timestamp=datetime.now(KST).strftime("%Y-%m-%d %H:%M:%S"),
         overall_status=overall_status,
         services=services,
         summary=summary,

@@ -7,7 +7,7 @@ programs:
     run_time : ["0130"]
 
   - name : "auto_esafe"
-    description: "esafe프로그램 구동, 필요한 파일 다운로드, 하루 2번 동작 실행"
+    description: "esafe프로그램 구동, 필요한 파일 다운로드"
     base_dir: "c:\\auto_esafe"
     scheduler: "taskschd.msc"
     run_time : ["0630", "1830"]
@@ -16,3 +16,4 @@ programs:
     description: "펀드메일 수집 프로그램, 5분단위로 수집"
     base_dir: "c:\\fund_mail"
     scheduler: "window service"
+    run_time : ["5분간격"]
