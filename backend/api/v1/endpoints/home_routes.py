@@ -68,8 +68,19 @@ async def page(
     func = PAGE_CONTEXT_PROVIDERS.get(page_path)
     if func:
         try:
-            # 호출가능한 aysnc 함수인지 확인 수행하여 결과를 data에 담는다
-            data = await func() if callable(func) and func.__code__.co_flags & 0x80 else func()
+            # 함수가 async인지 확인
+            is_async = callable(func) and func.__code__.co_flags & 0x80
+            
+            # 함수가 매개변수를 받는지 확인
+            func_params = func.__code__.co_argcount if callable(func) else 0
+            
+            if func_params > 0:
+                # context를 매개변수로 전달
+                data = await func(context) if is_async else func(context)
+            else:
+                # 매개변수가 없는 기존 함수 호환성 유지
+                data = await func() if is_async else func()
+                
             context["data"] = data
         except Exception as e:
             logger.error(f"{path}용 데이터 로딩 실패: {e}")

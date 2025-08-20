@@ -11,6 +11,10 @@
 버전: 1.0
 """
 
+from backend.domains.page_contexts.context_files import files_tree, files_view
+
+
 PAGE_CONTEXT_PROVIDERS = {
-    # "user/user": user_user,
+    "files/tree": files_tree,
+    "files/view": files_view,
 }

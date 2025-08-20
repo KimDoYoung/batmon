@@ -1,0 +1,165 @@
+{% extends "common/base.html" %}
+
+{% block style %}
+<style>
+  .file-viewer {
+    max-height: 80vh;
+    overflow: auto;
+  }
+  .code-viewer {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 0.375rem;
+    padding: 1rem;
+    font-family: 'Courier New', monospace;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+  .excel-table-container {
+    max-height: 70vh;
+    overflow: auto;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+  }
+  .image-viewer {
+    text-align: center;
+    padding: 2rem;
+  }
+  .image-viewer img {
+    max-width: 100%;
+    max-height: 70vh;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+  .pdf-viewer {
+    width: 100%;
+    height: 80vh;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+  }
+  .file-info {
+    background: #e9ecef;
+    padding: 0.75rem 1rem;
+    border-radius: 0.375rem;
+    margin-bottom: 1rem;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <!-- 파일 정보 헤더 -->
+  <div class="file-info">
+    <div class="d-flex align-items-center justify-content-between">
+      <div>
+        <h4 class="mb-1">
+          <i class="bi bi-file-earmark me-2"></i>{{ data.file_name }}
+        </h4>
+        <small class="text-muted">
+          프로그램: {{ data.program_name }} | 경로: {{ data.file_path }}
+        </small>
+      </div>
+      <div>
+        <a href="/api/v1/system/download?program_name={{ data.program_name }}&path={{ data.file_path | urlencode }}" 
+           class="btn btn-outline-success btn-sm">
+          <i class="bi bi-download me-1"></i>다운로드
+        </a>
+        <button onclick="window.close()" class="btn btn-outline-secondary btn-sm ms-2">
+          <i class="bi bi-x-lg me-1"></i>닫기
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 파일 내용 표시 -->
+  <div class="file-viewer">
+    {% if data.file_type == 'text' %}
+      <!-- 텍스트 파일 -->
+      <div class="code-viewer">{{ data.content }}</div>
+      
+    {% elif data.file_type == 'excel' %}
+      <!-- Excel 파일 -->
+      <div class="excel-table-container">
+        {{ data.content | safe }}
+      </div>
+      
+    {% elif data.file_type == 'image' %}
+      <!-- 이미지 파일 -->
+      <div class="image-viewer">
+        <img src="{{ data.content }}" alt="{{ data.file_name }}" loading="lazy">
+      </div>
+      
+    {% elif data.file_type == 'pdf' %}
+      <!-- PDF 파일 -->
+      <iframe src="{{ data.content }}" class="pdf-viewer" type="application/pdf">
+        <p>PDF를 표시할 수 없습니다. 
+          <a href="{{ data.content }}" target="_blank">여기를 클릭</a>하여 새 창에서 열어보세요.
+        </p>
+      </iframe>
+      
+    {% else %}
+      <!-- 지원하지 않는 파일 타입 -->
+      <div class="alert alert-warning text-center">
+        <i class="bi bi-exclamation-triangle me-2"></i>
+        이 파일 형식은 미리보기를 지원하지 않습니다.
+        <br>
+        <small>다운로드 버튼을 클릭하여 파일을 받으세요.</small>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+// 키보드 단축키
+document.addEventListener('keydown', function(e) {
+  // ESC 키로 창 닫기
+  if (e.key === 'Escape') {
+    window.close();
+  }
+  
+  // Ctrl+D로 다운로드
+  if (e.ctrlKey && e.key === 'd') {
+    e.preventDefault();
+    const downloadBtn = document.querySelector('a[href*="download"]');
+    if (downloadBtn) {
+      downloadBtn.click();
+    }
+  }
+});
+
+// Excel 테이블 개선
+document.addEventListener('DOMContentLoaded', function() {
+  const excelTable = document.getElementById('excel-table');
+  if (excelTable) {
+    // 테이블 헤더 고정
+    excelTable.style.position = 'relative';
+    
+    // 행 번호 추가 (선택사항)
+    const rows = excelTable.querySelectorAll('tbody tr');
+    rows.forEach((row, index) => {
+      const rowNumberCell = document.createElement('td');
+      rowNumberCell.textContent = index + 1;
+      rowNumberCell.style.backgroundColor = '#f8f9fa';
+      rowNumberCell.style.fontWeight = 'bold';
+      rowNumberCell.style.textAlign = 'center';
+      rowNumberCell.style.width = '50px';
+      row.insertBefore(rowNumberCell, row.firstChild);
+    });
+    
+    // 헤더에도 행 번호 컬럼 추가
+    const headerRow = excelTable.querySelector('thead tr');
+    if (headerRow) {
+      const headerCell = document.createElement('th');
+      headerCell.textContent = '#';
+      headerCell.style.backgroundColor = '#e9ecef';
+      headerCell.style.textAlign = 'center';
+      headerCell.style.width = '50px';
+      headerRow.insertBefore(headerCell, headerRow.firstChild);
+    }
+  }
+});
+</script>
+{% endblock %}

@@ -1,15 +1,376 @@
 {% extends "common/base.html" %}
 {% block style %}
   <style>
+    .folder-toggle{cursor:pointer;user-select:none}
+    .sidebar{max-height:70vh;overflow:auto}
+    .file-row:hover{background:#f8f9fa}
+    .bi{width:1.2rem;display:inline-block;text-align:center}
   </style>
 {% endblock %}
 {% block content %}
-<h1>파일 트리 {{name}}</h1>    
+  <div class="container" x-data="fsApp()">
+    <div class="row g-3">
+
+      <!-- 좌측: 폴더 트리 -->
+      <div class="col-12 col-md-4 col-lg-3">
+        <div class="card h-100">
+          <div class="card-header fw-bold">폴더</div>
+          <div class="card-body sidebar">
+
+            <!-- 프로그램명 루트 (동적) -->
+            <div class="mb-2">
+              <div class="d-flex align-items-center gap-1 folder-toggle"
+                   @click="select(ROOT)">
+                <i class="bi" :class="selected===ROOT ? 'bi-folder2-open' : 'bi-folder2'"></i>
+                <span class="fw-semibold" x-text="PROGRAM_NAME"></span>
+              </div>
+
+              <div class="ms-4 mt-2">
+                <!-- 동적 폴더 목록 -->
+                <template x-for="folder in subfolders[ROOT] || []" :key="folder.path">
+                  <div class="mb-1">
+                    <div class="d-flex align-items-center gap-1 folder-toggle"
+                         @click="toggle(folder.path); select(folder.path)">
+                      <i class="bi" :class="isOpen(folder.path) ? 'bi-folder2-open' : 'bi-folder2'"></i>
+                      <span x-text="folder.name"></span>
+                      <span class="ms-auto text-muted small"
+                            x-text="loading ? '...' : (isOpen(folder.path) ? '−' : '+')"></span>
+                    </div>
+                    <div class="ms-4 mt-1" x-show="isOpen(folder.path)" x-transition>
+                      <template x-for="subFolder in subfolders[folder.path] || []" :key="subFolder.path">
+                        <div class="d-flex align-items-center gap-1 folder-toggle"
+                             @click.stop="select(subFolder.path)">
+                          <i class="bi" :class="selected===subFolder.path ? 'bi-folder2-open' : 'bi-folder2'"></i>
+                          <span x-text="subFolder.name"></span>
+                        </div>
+                      </template>
+                    </div>
+                  </div>
+                </template>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- 우측: 파일 리스트 -->
+      <div class="col-12 col-md-8 col-lg-9">
+        <div class="card h-100">
+          <div class="card-header d-flex align-items-center gap-2">
+            <i class="bi bi-folder2-open"></i><span class="fw-bold">현재 경로:</span>
+            <nav aria-label="breadcrumb" class="flex-grow-1"><ol class="breadcrumb mb-0">
+              <template x-for="(seg,i) in breadcrumb" :key="i">
+                <li class="breadcrumb-item" :class="{'active': i===breadcrumb.length-1}" x-text="seg"></li>
+              </template>
+            </ol></nav>
+            <span class="badge text-bg-secondary text-white ms-auto" x-text="folderSizeInfo"></span>
+          </div>
+
+          <div class="card-body p-0">
+            <div class="p-2 border-bottom bg-light d-flex align-items-center gap-2">
+              <input class="form-control form-control-sm" placeholder="이 폴더에서 파일 검색"
+                     x-model="filterText" @input.debounce.200ms="applyFilter"/>
+              <span class="badge text-bg-secondary ms-auto" x-text="`${filtered.length} files`"></span>
+            </div>
+
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th style="width:36px;"></th>
+
+                    <!-- 파일명 정렬 -->
+                    <th class="sortable" @click="setSort('name')" style="cursor:pointer;">
+                      파일명
+                      <i class="bi ms-1"
+                         :class="sortKey==='name'
+                                 ? (sortDir==='asc' ? 'bi-arrow-down' : 'bi-arrow-up')
+                                 : 'bi-arrow-down-up'"></i>
+                    </th>
+
+                    <th class="text-end" style="width:140px;">크기</th>
+
+                    <!-- 수정시각 정렬 -->
+                    <th class="sortable" @click="setSort('mtime')" style="cursor:pointer; width:180px;">
+                      수정시각
+                      <i class="bi ms-1"
+                         :class="sortKey==='mtime'
+                                 ? (sortDir==='asc' ? 'bi-arrow-down' : 'bi-arrow-up')
+                                 : 'bi-arrow-down-up'"></i>
+                    </th>
+
+                    <!-- 액션 버튼 -->
+                    <th style="width:100px;" class="text-center">액션</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <template x-if="loading">
+                    <tr><td colspan="5" class="text-center text-muted py-4">
+                      <span class="spinner-border spinner-border-sm me-2"></span>로딩 중...
+                    </td></tr>
+                  </template>
+                  <template x-if="!loading && filtered.length===0">
+                    <tr><td colspan="5" class="text-center text-muted py-4">파일이 없습니다</td></tr>
+                  </template>
+                  <template x-if="!loading">
+                    <template x-for="f in filtered" :key="f.path">
+                      <tr class="file-row">
+                        <td class="text-center"><i class="bi" :class="fileIcon(f.ext)"></i></td>
+                        <td x-text="f.name"></td>
+                        <td class="text-end" x-text="formatFileSize(f.size)"></td>
+                        <td x-text="f.mtime || '-'"></td>
+                        <td class="text-start">
+                          <div class="btn-group btn-group-sm">
+                            <!-- 보기 버튼 - 보기 가능한 파일만 -->
+                            <template x-if="isViewableFile(f.ext)">
+                              <button class="btn btn-outline-primary btn-sm" 
+                                      @click="viewFile(f)" 
+                                      title="보기">
+                                <i class="bi bi-eye"></i>
+                              </button>
+                            </template>
+                            
+                            <!-- 다운로드 버튼 - 다운로드 가능한 파일만 -->
+                            <template x-if="isDownloadableFile(f.ext)">
+                              <button class="btn btn-outline-success btn-sm" 
+                                      @click="downloadFile(f)" 
+                                      title="다운로드">
+                                <i class="bi bi-download"></i>
+                              </button>
+                            </template>
+                          </div>
+                        </td>
+                      </tr>
+                    </template>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>  
 
 {% endblock %}
 
 {% block script %}
+<!-- 서버 데이터를 JavaScript로 전달 -->
+<script id="server-data" type="application/json">
+{
+  "program_name": "{{ program_name | default('auto_esafe') }}",
+  "base_dir": "{{ base_dir | default('C:/auto_esafe') }}",
+  "description": "{{ description | default('eSafe 자동화 프로그램') }}"
+}
+</script>
+
 <script>
+function fsApp(){
+  // 서버에서 전달받은 데이터 파싱
+  const serverData = JSON.parse(document.getElementById('server-data').textContent);
+  const ROOT = serverData.base_dir;
+  const PROGRAM_NAME = serverData.program_name;
+
+  return {
+    ROOT,
+    PROGRAM_NAME,
+    selected: ROOT,
+    breadcrumb: [],
+    filterText: '',
+    files: [], 
+    filtered: [],
+    openMap: {},
+    subfolders: {},
+    sortKey:'name', 
+    sortDir:'asc',
+    loading: false,
+
+    // 폴더 크기 정보를 위한 computed property
+    get folderSizeInfo() {
+      if (this.files.length === 0) return '빈 폴더';
+      
+      const totalSize = this.files.reduce((sum, file) => {
+        const size = typeof file.size === 'number' ? file.size : 0;
+        return sum + size;
+      }, 0);
+      
+      return `${this.files.length}개 파일, ${this.formatFileSize(totalSize)}`;
+    },
+
+    async init(){
+      // 초기 breadcrumb 설정
+      this.updateBreadcrumb(ROOT);
+      await this.loadDirectoryData(ROOT);
+    },
+
+    async loadDirectoryData(folderPath) {
+      this.loading = true;
+      try {
+        // ROOT에서 상대 경로 계산
+        const relativePath = folderPath === ROOT ? '' : folderPath.replace(ROOT, '').replace(/^\/+/, '');
+        const url = `/api/v1/system/dir/${PROGRAM_NAME}?subpath=${encodeURIComponent(relativePath)}`;
+        
+        const data = await getFetch(url);
+        console.log("data:", data);
+        if (data) {
+          // 폴더 목록 업데이트 - 폴더 객체 배열로 저장
+          this.subfolders[folderPath] = data.folders || [];
+          
+          // 현재 선택된 폴더의 파일 목록 업데이트
+          if (folderPath === this.selected) {
+            this.files = data.files || [];
+            this.applyFilter();
+          }
+        }
+      } catch (error) {
+        console.error('디렉토리 데이터 로딩 실패:', error);
+        this.files = [];
+        this.filtered = [];
+        this.subfolders[folderPath] = [];
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    updateBreadcrumb(folderPath) {
+      // ROOT 경로를 기준으로 breadcrumb 생성
+      if (folderPath === ROOT) {
+        this.breadcrumb = [PROGRAM_NAME];
+      } else {
+        const relativePath = folderPath.replace(ROOT, '').replace(/^\/+/, '');
+        this.breadcrumb = [PROGRAM_NAME, ...relativePath.split('/').filter(Boolean)];
+      }
+    },
+
+    async select(folderPath){
+      this.selected = folderPath;
+      this.updateBreadcrumb(folderPath);
+      await this.loadDirectoryData(folderPath);
+    },
+
+    isOpen(path){ return !!this.openMap[path]; },
+    async toggle(path){ 
+      this.openMap[path] = !this.openMap[path];
+      if (this.openMap[path]) {
+        await this.loadDirectoryData(path);
+      }
+    },
+
+    async refreshFiles(){
+      await this.loadDirectoryData(this.selected);
+    },
+
+    applyFilter(){
+      const q = this.filterText.trim().toLowerCase();
+      this.filtered = q ? this.files.filter(f=>(f.name||'').toLowerCase().includes(q))
+                        : [...this.files];
+      this.applySort();
+    },
+
+    setSort(key){
+      if (this.sortKey===key){
+        this.sortDir = (this.sortDir==='asc')?'desc':'asc';
+      }else{
+        this.sortKey=key; this.sortDir='asc';
+      }
+      this.applySort();
+    },
+
+    applySort(){
+      const key=this.sortKey, dir=this.sortDir;
+      const collator=new Intl.Collator('ko-KR',{numeric:true,sensitivity:'base'});
+      const cmp=(a,b)=>{
+        if(key==='name'){return collator.compare(a.name||'',b.name||'');}
+        if(key==='mtime'){return (Date.parse(a.mtime||'')||0)-(Date.parse(b.mtime||'')||0);}
+        return 0;
+      };
+      this.filtered.sort((a,b)=>dir==='asc'?cmp(a,b):-cmp(a,b));
+    },
+
+    fileIcon(ext){
+      switch((ext||'').toLowerCase()){
+        case 'exe': return 'bi-gear';
+        case 'xls': case 'xlsx': return 'bi-file-earmark-excel';
+        case 'csv': return 'bi-filetype-csv';
+        case 'log': return 'bi-file-earmark-text';
+        case 'png': case 'jpg': case 'jpeg': case 'gif': return 'bi-file-earmark-image';
+        case 'pdf': return 'bi-file-earmark-pdf';
+        case 'txt': return 'bi-file-earmark-text';
+        case 'zip': case 'rar': case '7z': return 'bi-file-earmark-zip';
+        case 'doc': case 'docx': return 'bi-file-earmark-word';
+        case 'ppt': case 'pptx': return 'bi-file-earmark-ppt';
+        default: return 'bi-file-earmark';
+      }
+    },
+
+    // 보기 가능한 파일인지 확인
+    isViewableFile(ext) {
+      const viewableExts = [
+        'txt', 'log', 'json', 'xml', 'html', 'htm', 'css', 'js', 'py', 'java', 'cpp', 'c', 'h',
+        'md', 'csv', 'ini', 'conf', 'cfg', 'yml', 'yaml',
+        'jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp',
+        'pdf', 'xls', 'xlsx'
+      ];
+      return viewableExts.includes((ext || '').toLowerCase());
+    },
+
+    // 다운로드 가능한 파일인지 확인 (보안 위험 파일 제외)
+    isDownloadableFile(ext) {
+      const nonDownloadableExts = ['exe', 'msi', 'bat', 'cmd', 'com', 'scr', 'dll', 'sys', 'vbs', 'ps1'];
+      return !nonDownloadableExts.includes((ext || '').toLowerCase());
+    },
+
+    // 액션 버튼을 표시할 파일인지 확인 (이전 함수는 유지)
+    isActionableFile(ext) {
+      const nonActionableExts = ['exe', 'msi', 'bat', 'cmd', 'com', 'scr', 'dll', 'sys'];
+      return !nonActionableExts.includes((ext || '').toLowerCase());
+    },
+
+    // 파일 보기
+    async viewFile(file) {
+      const relativePath = this.selected === this.ROOT ? '' : this.selected.replace(this.ROOT, '').replace(/^\/+/, '');
+      const filePath = relativePath ? `${relativePath}/${file.name}` : file.name;
+      const url = `/page?path=files/view&program_name=${PROGRAM_NAME}&path=${encodeURIComponent(filePath)}`;
+
+      // 새 창에서 파일 열기
+      window.open(url, '_blank');
+    },
+
+    // 파일 다운로드
+    async downloadFile(file) {
+      const relativePath = this.selected === this.ROOT ? '' : this.selected.replace(this.ROOT, '').replace(/^\/+/, '');
+      const filePath = relativePath ? `${relativePath}/${file.name}` : file.name;
+      const url = `/page?path=files/download&file_path=${encodeURIComponent(filePath)}`;
+      
+      // 다운로드 링크 생성 및 클릭
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = file.name;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    },
+
+    formatFileSize(size) {
+      if (!size || size === 0) return '-';
+      if (typeof size === 'string') return size; // 이미 포맷된 문자열
+      
+      const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+      let unitIndex = 0;
+      let fileSize = size;
+      
+      while (fileSize >= 1024 && unitIndex < units.length - 1) {
+        fileSize /= 1024;
+        unitIndex++;
+      }
+      
+      return `${fileSize.toFixed(1)} ${units[unitIndex]}`;
+    }
+  };
+}
 
 </script>
 {% endblock %}
