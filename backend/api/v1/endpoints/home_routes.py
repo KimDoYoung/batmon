@@ -58,6 +58,10 @@ async def page(
     page_page = path.lstrip('/')
     page_path = page_page if page_page else "main"
     version = config.VERSION
+    
+    logger.debug(f"page 함수 호출: path={path}, page_path={page_path}")
+    logger.debug(f"query_params: {dict(request.query_params)}")
+    
     context = { 
                 "_version": "0.0.1",
                 "request": request,  

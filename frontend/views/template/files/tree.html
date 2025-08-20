@@ -161,9 +161,9 @@
 <!-- 서버 데이터를 JavaScript로 전달 -->
 <script id="server-data" type="application/json">
 {
-  "program_name": "{{ program_name | default('auto_esafe') }}",
-  "base_dir": "{{ base_dir | default('C:/auto_esafe') }}",
-  "description": "{{ description | default('eSafe 자동화 프로그램') }}"
+  "program_name": {{ (data.program_name | default('auto_esafe')) | tojson }},
+  "base_dir": {{ (data.base_dir | default('C:/auto_esafe')) | tojson }},
+  "description": {{ (data.description | default('eSafe 자동화 프로그램')) | tojson }}
 }
 </script>
 
@@ -312,7 +312,7 @@ function fsApp(){
         'txt', 'log', 'json', 'xml', 'html', 'htm', 'css', 'js', 'py', 'java', 'cpp', 'c', 'h',
         'md', 'csv', 'ini', 'conf', 'cfg', 'yml', 'yaml',
         'jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp',
-        'pdf', 'xls', 'xlsx'
+        'pdf', 'xls', 'xlsx','bat'
       ];
       return viewableExts.includes((ext || '').toLowerCase());
     },
@@ -333,7 +333,7 @@ function fsApp(){
     async viewFile(file) {
       const relativePath = this.selected === this.ROOT ? '' : this.selected.replace(this.ROOT, '').replace(/^\/+/, '');
       const filePath = relativePath ? `${relativePath}/${file.name}` : file.name;
-      const url = `/page?path=files/view&program_name=${PROGRAM_NAME}&path=${encodeURIComponent(filePath)}`;
+      const url = `/page?path=files/view&program_name=${PROGRAM_NAME}&file_path=${encodeURIComponent(filePath)}`;
 
       // 새 창에서 파일 열기
       window.open(url, '_blank');
@@ -341,17 +341,25 @@ function fsApp(){
 
     // 파일 다운로드
     async downloadFile(file) {
-      const relativePath = this.selected === this.ROOT ? '' : this.selected.replace(this.ROOT, '').replace(/^\/+/, '');
-      const filePath = relativePath ? `${relativePath}/${file.name}` : file.name;
-      const url = `/page?path=files/download&file_path=${encodeURIComponent(filePath)}`;
-      
-      // 다운로드 링크 생성 및 클릭
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = file.name;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+        const relativePath = this.selected === this.ROOT ? '' : this.selected.replace(this.ROOT, '').replace(/^\/+/, '');
+        const filePath = relativePath ? `${relativePath}/${file.name}` : file.name;
+
+        // API 엔드포인트로 변경
+        const url = `/api/v1/system/download/${PROGRAM_NAME}?file_path=${encodeURIComponent(filePath)}`;
+        
+        try {
+            // 다운로드 링크 생성 및 클릭
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = file.name;
+            link.target = '_blank';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        } catch (error) {
+            console.error('파일 다운로드 오류:', error);
+            alert('파일을 다운로드할 수 없습니다.');
+        }
     },
 
     formatFileSize(size) {

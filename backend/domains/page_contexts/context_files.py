@@ -13,6 +13,7 @@ def files_tree(context):
         raise HTTPException(status_code=404, detail="프로그램을 찾을 수 없습니다.")
 
     return {
+        "title" : f"{program_name} 탐색",
         "program_name": program_name,
         "base_dir": program_config.get("base_dir", ""),
         "description": program_config.get("description", ""),
@@ -24,10 +25,12 @@ def files_view(context):
     
     # URL 파라미터에서 데이터 추출
     program_name = context.get("program_name", "unknown")
-    file_path = context.get("path", "")
+    file_path = context.get("file_path", "")
+    
+    logger.debug(f"files_view: program_name={program_name}, file_path={file_path}")
     
     if not program_name or not file_path:
-        raise HTTPException(status_code=400, detail="program_name과 path 파라미터가 필요합니다.")
+        raise HTTPException(status_code=400, detail="program_name과 file_path 파라미터가 필요합니다.")
     
     try:
         # 프로그램 설정 가져오기
@@ -60,9 +63,13 @@ def files_view(context):
         
         if file_ext in ['.xls', '.xlsx']:
             # Excel 파일 처리
+            logger.debug(f"Excel 파일 처리 시작: {full_path}")
             try:
                 import pandas as pd
+                logger.debug("pandas 임포트 성공")
+                
                 df = pd.read_excel(full_path, sheet_name=0)
+                logger.debug(f"Excel 파일 읽기 성공: {df.shape} 크기")
                 
                 # HTML 테이블로 변환
                 content = df.to_html(
@@ -71,14 +78,21 @@ def files_view(context):
                     table_id='excel-table'
                 )
                 file_type = "excel"
-            except ImportError:
+                logger.debug("Excel 파일을 HTML로 변환 완료")
+            except ImportError as e:
+                logger.error(f"pandas ImportError: {e}")
                 raise HTTPException(status_code=500, detail="Excel 파일을 읽기 위한 pandas가 설치되지 않았습니다.")
             except Exception as e:
+                logger.error(f"Excel 파일 읽기 실패: {e}")
                 raise HTTPException(status_code=500, detail=f"Excel 파일 읽기 실패: {str(e)}")
         
-        elif file_ext in ['.txt', '.log', '.json', '.xml', '.html', '.htm', '.css', '.js', '.py', '.java', '.cpp', '.c', '.h', '.md', '.csv', '.ini', '.conf', '.cfg', '.yml', '.yaml']:
+        elif file_ext in ['.txt', '.log', '.bat', '.json', '.xml', '.html', '.htm', '.css', '.js', '.py', '.java', '.cpp', '.c', '.h', '.md', '.csv', '.ini', '.conf', '.cfg', '.yml', '.yaml']:
             # 텍스트 파일 처리
             try:
+                # 파일 크기 확인 (10MB 제한)
+                if file_size > 10 * 1024 * 1024:
+                    raise HTTPException(status_code=413, detail="파일이 너무 큽니다 (10MB 초과). 다운로드를 이용해주세요.")
+                
                 with open(full_path, 'r', encoding='utf-8') as f:
                     content = f.read()
                 file_type = "text"
@@ -92,19 +106,20 @@ def files_view(context):
                     raise HTTPException(status_code=500, detail=f"파일 인코딩 오류: {str(e)}")
         
         elif file_ext in ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.svg', '.webp']:
-            # 이미지 파일 처리
-            content = f"/api/v1/system/download?program_name={program_name}&path={file_path}"
+            # 이미지 파일 처리 - 스트리밍 엔드포인트 사용
+            content = f"/api/v1/system/file/stream/{program_name}?file_path={file_path}"
             file_type = "image"
         
         elif file_ext == '.pdf':
-            # PDF 파일 처리
-            content = f"/api/v1/system/download?program_name={program_name}&path={file_path}"
+            # PDF 파일 처리 - 스트리밍 엔드포인트 사용
+            content = f"/api/v1/system/file/stream/{program_name}?file_path={file_path}"
             file_type = "pdf"
         
         else:
             raise HTTPException(status_code=400, detail=f"지원하지 않는 파일 형식입니다: {file_ext}")
         
         return {
+            "title" : "파일보기",
             "file_name": file_name,
             "file_type": file_type,
             "content": content,

@@ -1,4 +1,8 @@
+import mimetypes
 import os
+from pathlib import Path
+
+from fastapi.responses import FileResponse, StreamingResponse
 from backend.core.config import config
 from backend.core.logger import get_logger
 from fastapi import APIRouter, HTTPException, Request
@@ -77,10 +81,10 @@ def get_dirs(name: str, subpath: str = "", request: Request = None):
 
    
 
-@router.get("/download", include_in_schema=True)
-def file_download(program_name: str, path: str, request: Request):
+@router.get("/download/{program_name}", include_in_schema=True)
+def file_download(program_name: str, file_path: str, request: Request):
     """ 파일을 다운로드합니다. """
-    logger.info("파일 다운로드 요청: program=%s, path=%s", program_name, path)
+    logger.info("파일 다운로드 요청: program=%s, path=%s", program_name, file_path)
     
     try:
         # 프로그램 설정 가져오기
@@ -93,11 +97,11 @@ def file_download(program_name: str, path: str, request: Request):
             raise HTTPException(status_code=400, detail=f"프로그램 '{program_name}'의 base_dir이 설정되지 않았습니다.")
         
         # 전체 파일 경로 구성
-        full_path = os.path.join(base_dir, path)
+        full_path = os.path.join(base_dir, file_path)
         
         # 파일 존재 여부 확인
         if not os.path.exists(full_path):
-            raise HTTPException(status_code=404, detail=f"파일을 찾을 수 없습니다: {path}")
+            raise HTTPException(status_code=404, detail=f"파일을 찾을 수 없습니다: {file_path}")
         
         if not os.path.isfile(full_path):
             raise HTTPException(status_code=400, detail="디렉토리는 다운로드할 수 없습니다.")
@@ -118,3 +122,53 @@ def file_download(program_name: str, path: str, request: Request):
     except Exception as e:
         logger.exception("파일 다운로드 실패: %s", e)
         raise HTTPException(status_code=500, detail=f"파일 다운로드에 실패했습니다: {str(e)}")
+
+@router.get("/file/stream/{program_name}", include_in_schema=True)
+def stream_file(program_name: str, file_path: str, request: Request):
+    """ 파일을 스트림으로 서빙합니다 (이미지, PDF 등 브라우저에서 직접 표시용). """
+    logger.info("파일 스트림 요청: program=%s, file_path=%s", program_name, file_path)
+    
+    try:
+        # 프로그램 설정 가져오기
+        program_config = config.get_program(program_name)
+        if not program_config:
+            raise HTTPException(status_code=404, detail=f"프로그램 '{program_name}'을 찾을 수 없습니다.")
+        
+        base_dir = program_config.get('base_dir', '')
+        if not base_dir:
+            raise HTTPException(status_code=400, detail=f"프로그램 '{program_name}'의 base_dir이 설정되지 않았습니다.")
+        
+        # 전체 파일 경로 구성
+        full_path = os.path.join(base_dir, file_path)
+        
+        # 파일 존재 여부 확인
+        if not os.path.exists(full_path):
+            raise HTTPException(status_code=404, detail=f"파일을 찾을 수 없습니다: {file_path}")
+        
+        if not os.path.isfile(full_path):
+            raise HTTPException(status_code=400, detail="디렉토리는 스트리밍할 수 없습니다.")
+        
+        # MIME 타입 결정
+        mime_type, _ = mimetypes.guess_type(full_path)
+        if mime_type is None:
+            mime_type = 'application/octet-stream'
+        
+        # 파일 스트리밍
+        def iterfile():
+            with open(full_path, "rb") as file_like:
+                yield from file_like
+        
+        return StreamingResponse(
+            iterfile(),
+            media_type=mime_type,
+            headers={
+                "Content-Disposition": "inline",  # 브라우저에서 직접 표시
+                "Cache-Control": "public, max-age=3600"  # 1시간 캐시
+            }
+        )
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("파일 스트리밍 실패: %s", e)
+        raise HTTPException(status_code=500, detail=f"파일 스트리밍에 실패했습니다: {str(e)}")

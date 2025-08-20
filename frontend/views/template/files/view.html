@@ -61,7 +61,7 @@
         </small>
       </div>
       <div>
-        <a href="/api/v1/system/download?program_name={{ data.program_name }}&path={{ data.file_path | urlencode }}" 
+        <a href="/api/v1/system/download/{{ data.program_name }}?file_path={{ data.file_path | urlencode }}" 
            class="btn btn-outline-success btn-sm">
           <i class="bi bi-download me-1"></i>다운로드
         </a>
@@ -76,7 +76,7 @@
   <div class="file-viewer">
     {% if data.file_type == 'text' %}
       <!-- 텍스트 파일 -->
-      <div class="code-viewer">{{ data.content }}</div>
+    <div class="code-viewer" style="white-space: pre; overflow-x: auto;">{{ data.content }}</div>
       
     {% elif data.file_type == 'excel' %}
       <!-- Excel 파일 -->
