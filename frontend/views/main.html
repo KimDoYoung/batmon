@@ -127,8 +127,7 @@
             </dl>
 
             <div class="mt-auto pt-3 d-flex gap-2">
-              <button class="btn btn-sm btn-outline-secondary" @click="openLogs(svc)">로그 보기</button>
-              <button class="btn btn-sm btn-outline-primary"  @click="rerun(svc)" :disabled="svc.status==='OK'">재실행</button>
+              <button class="btn btn-sm btn-outline-secondary" @click="openFiles(svc)">파일탐색기</button>
             </div>
           </div>
         </div>
@@ -313,10 +312,11 @@ function batmonDashboard() {
     },
 
     // 액션 (엔드포인트는 필요에 맞게 교체)
-    openLogs(svc) {
-      // 예: /api/logs?program=kindscrap
-      const url = `/api/logs?program=${encodeURIComponent(svc.name)}`;
-      window.open(url, '_blank');
+    openFiles(svc) {
+      // /page?path=files/tree&name=kindscrap
+      let program_name = svc.name;
+      const url = `/page?path=files/tree&name=${encodeURIComponent(program_name)}`;
+      window.open(url);
     },
     rerun(svc) {
       // 예: /api/run?program=...
