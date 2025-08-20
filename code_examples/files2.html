@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8"/>
+  <title>Mini FS Browser</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <!-- Bootstrap Icons (선택) -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"/>
+  <!-- Alpine.js -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <style>
+    .folder-toggle { cursor: pointer; user-select: none; }
+    .folder-item .bi { width: 1.2rem; display: inline-block; }
+    .sidebar { max-height: 70vh; overflow:auto; }
+    .file-row:hover { background: #f8f9fa; }
+  </style>
+</head>
+<body class="p-3" x-data="fsBrowser()">
+  <div class="container-fluid">
+    <div class="row g-3">
+
+      <!-- 좌측: 폴더 트리 -->
+      <div class="col-12 col-md-4 col-lg-3">
+        <div class="card h-100">
+          <div class="card-header fw-bold">
+            폴더
+          </div>
+          <div class="card-body sidebar">
+            <template x-for="node in tree" :key="node.path">
+              <div class="folder-item">
+                <div class="d-flex align-items-center gap-1 folder-toggle"
+                     @click="toggle(node); selectFolder(node)">
+                  <i class="bi"
+                     :class="node.isDir ? (node.open ? 'bi-folder2-open' : 'bi-folder2') : 'bi-file-earmark'"></i>
+                  <span x-text="node.name"></span>
+                  <span class="ms-auto text-muted small" x-show="node.isDir" x-text="node.open ? '−' : '+'"></span>
+                </div>
+
+                <!-- 자식 재귀 렌더링 -->
+                <div class="ms-4 mt-1" x-show="node.open" x-transition>
+                  <template x-for="child in node.children" :key="child.path">
+                    <div class="folder-item">
+                      <div class="d-flex align-items-center gap-1 folder-toggle"
+                           @click.stop="toggle(child); selectFolder(child)">
+                        <i class="bi"
+                           :class="child.isDir ? (child.open ? 'bi-folder2-open' : 'bi-folder2') : 'bi-file-earmark'"></i>
+                        <span x-text="child.name"></span>
+                        <span class="ms-auto text-muted small" x-show="child.isDir" x-text="child.open ? '−' : '+'"></span>
+                      </div>
+                      <div class="ms-4 mt-1" x-show="child.open && child.children?.length" x-transition>
+                        <!-- 3단계까지만 예시 (필요 시 같은 패턴으로 더 중첩 가능) -->
+                        <template x-for="gchild in child.children" :key="gchild.path">
+                          <div class="d-flex align-items-center gap-1 folder-toggle"
+                               @click.stop="toggle(gchild); selectFolder(gchild)">
+                            <i class="bi"
+                               :class="gchild.isDir ? (gchild.open ? 'bi-folder2-open' : 'bi-folder2') : 'bi-file-earmark'"></i>
+                            <span x-text="gchild.name"></span>
+                            <span class="ms-auto text-muted small" x-show="gchild.isDir" x-text="gchild.open ? '−' : '+'"></span>
+                          </div>
+                        </template>
+                      </div>
+                    </div>
+                  </template>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+      </div>
+
+      <!-- 우측: 파일 리스트 -->
+      <div class="col-12 col-md-8 col-lg-9">
+        <div class="card h-100">
+          <div class="card-header d-flex align-items-center gap-2">
+            <i class="bi bi-folder2-open"></i>
+            <span class="fw-bold">현재 경로:</span>
+            <nav aria-label="breadcrumb">
+              <ol class="breadcrumb mb-0">
+                <template x-for="(seg, idx) in breadcrumb" :key="idx">
+                  <li class="breadcrumb-item"
+                      :class="{'active': idx === breadcrumb.length - 1}"
+                      x-text="seg"></li>
+                </template>
+              </ol>
+            </nav>
+          </div>
+          <div class="card-body p-0">
+
+            <div class="p-2 border-bottom bg-light d-flex align-items-center gap-2">
+              <input class="form-control form-control-sm" placeholder="이 폴더에서 파일 검색"
+                     x-model="filterText" @input.debounce.250ms="applyFilter"/>
+              <div class="ms-auto">
+                <span class="badge text-bg-secondary" x-text="`${filteredFiles.length} files`"></span>
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th style="width: 36px;"></th>
+                    <th>파일명</th>
+                    <th style="width: 140px;" class="text-end">크기</th>
+                    <th style="width: 180px;">수정시각</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <template x-if="filteredFiles.length === 0">
+                    <tr><td colspan="4" class="text-center text-muted py-4">파일이 없습니다</td></tr>
+                  </template>
+                  <template x-for="file in filteredFiles" :key="file.path">
+                    <tr class="file-row">
+                      <td class="text-center">
+                        <i class="bi" :class="fileIcon(file.ext)"></i>
+                      </td>
+                      <td x-text="file.name"></td>
+                      <td class="text-end" x-text="file.size"></td>
+                      <td x-text="file.mtime"></td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    function fsBrowser() {
+      // 데모용 데이터 (실사용 시 API로 교체)
+      const demoTree = [
+        {
+          name: 'C:', path: 'C:/', isDir: true, open: true, children: [
+            {
+              name: 'kindscrap', path: 'C:/kindscrap', isDir: true, open: true, children: [
+                { name: 'logs', path: 'C:/kindscrap/logs', isDir: true, open: false, children: [] },
+                { name: 'kindscrap.exe', path: 'C:/kindscrap/kindscrap.exe', isDir: false },
+                { name: 'README.md', path: 'C:/kindscrap/README.md', isDir: false },
+              ]
+            },
+            {
+              name: 'auto_esafe', path: 'C:/auto_esafe', isDir: true, open: false, children: [
+                { name: 'config.ini', path: 'C:/auto_esafe/config.ini', isDir: false },
+                { name: 'data', path: 'C:/auto_esafe/data', isDir: true, open: false, children: [] },
+              ]
+            },
+            {
+              name: 'fund_mail', path: 'C:/fund_mail', isDir: true, open: false, children: [
+                { name: 'service.log', path: 'C:/fund_mail/service.log', isDir: false }
+              ]
+            }
+          ]
+        }
+      ];
+
+      // 폴더별 데모 파일 목록 (실사용 시 /api/files?path=... 같은 엔드포인트에서 받아오기)
+      const demoFilesByFolder = {
+        'C:/kindscrap': [
+          { name: 'kindscrap.exe', ext: 'exe', size: '5.6 MB', mtime: '2025-08-18 06:30', path: 'C:/kindscrap/kindscrap.exe' },
+          { name: 'README.md',    ext: 'md',  size: '2.1 KB', mtime: '2025-08-17 09:05', path: 'C:/kindscrap/README.md' }
+        ],
+        'C:/kindscrap/logs': [
+          { name: 'kindscrap_2025_08_19.log', ext: 'log', size: '120 KB', mtime: '2025-08-19 06:05', path: 'C:/kindscrap/logs/kindscrap_2025_08_19.log' },
+          { name: 'kindscrap_2025_08_18.log', ext: 'log', size: '118 KB', mtime: '2025-08-18 06:08', path: 'C:/kindscrap/logs/kindscrap_2025_08_18.log' }
+        ],
+        'C:/auto_esafe': [
+          { name: 'config.ini', ext: 'ini', size: '0.8 KB', mtime: '2025-08-18 07:01', path: 'C:/auto_esafe/config.ini' }
+        ],
+        'C:/fund_mail': [
+          { name: 'service.log', ext: 'log', size: '32 KB', mtime: '2025-08-19 08:25', path: 'C:/fund_mail/service.log' }
+        ],
+      };
+
+      return {
+        // 상태
+        tree: demoTree,
+        selectedFolder: 'C:/kindscrap',
+        files: demoFilesByFolder['C:/kindscrap'] ?? [],
+        filteredFiles: [],
+        filterText: '',
+        breadcrumb: ['C:', 'kindscrap'],
+
+        // 메서드
+        init() {
+          this.applyFilter();
+        },
+        toggle(node) {
+          if (!node.isDir) return;
+          node.open = !node.open;
+        },
+        selectFolder(node) {
+          if (!node.isDir) return;
+          this.selectedFolder = node.path;
+          this.files = demoFilesByFolder[node.path] ?? [];
+          this.applyFilter();
+          this.breadcrumb = this.selectedFolder
+            .replace(/^[A-Za-z]:\/?/, (m)=>m.endsWith('/')?m.slice(0,-1):m) // "C:/" -> "C:"
+            .split(/[\\/]/)
+            .filter(Boolean);
+        },
+        applyFilter() {
+          const q = this.filterText.trim().toLowerCase();
+          this.filteredFiles = q
+            ? this.files.filter(f => f.name.toLowerCase().includes(q))
+            : [...this.files];
+        },
+        fileIcon(ext) {
+          switch ((ext||'').toLowerCase()) {
+            case 'md':  return 'bi-filetype-md';
+            case 'log': return 'bi-journal-text';
+            case 'ini': return 'bi-gear';
+            case 'exe': return 'bi-cpu';
+            case 'txt': return 'bi-filetype-txt';
+            case 'csv': return 'bi-filetype-csv';
+            case 'json':return 'bi-filetype-json';
+            default:    return 'bi-file-earmark';
+          }
+        }
+      };
+    }
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>폴더 트리 + 파일 리스트</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.1/font/bootstrap-icons.min.css" rel="stylesheet">
+    <!-- Alpine.js -->
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs/3.13.3/cdn.min.js"></script>
+    <style>
+        .folder-tree {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .tree-item {
+            cursor: pointer;
+            padding: 5px 10px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+        .tree-item:hover {
+            background-color: #f8f9fa;
+        }
+        .tree-item.active {
+            background-color: #e3f2fd;
+            font-weight: 500;
+        }
+        .tree-indent {
+            margin-left: 20px;
+        }
+        .file-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .file-item {
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .file-item:hover {
+            background-color: #f8f9fa;
+            transform: translateX(5px);
+        }
+        .file-icon {
+            width: 24px;
+            height: 24px;
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container-fluid py-4" x-data="fileExplorer()">
+        <div class="row">
+            <div class="col-12">
+                <h2 class="mb-4"><i class="bi bi-folder-fill text-warning me-2"></i>파일 탐색기</h2>
+            </div>
+        </div>
+        
+        <div class="row">
+            <!-- 폴더 트리 -->
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="bi bi-folder-symlink me-2"></i>폴더 구조</h5>
+                    </div>
+                    <div class="card-body p-2">
+                        <div class="folder-tree">
+                            <template x-for="folder in folders" :key="folder.id">
+                                <div>
+                                    <div class="tree-item" 
+                                         :class="{ 'active': selectedFolder === folder.id }"
+                                         @click="selectFolder(folder.id)">
+                                        <i class="bi me-2"
+                                           :class="folder.expanded ? 'bi-folder-fill text-warning' : 'bi-folder text-warning'"></i>
+                                        <span x-text="folder.name"></span>
+                                        <span class="badge bg-secondary ms-2" x-text="folder.files.length"></span>
+                                    </div>
+                                    
+                                    <!-- 하위 폴더들 -->
+                                    <template x-if="folder.children && folder.children.length > 0">
+                                        <div class="tree-indent" x-show="folder.expanded">
+                                            <template x-for="child in folder.children" :key="child.id">
+                                                <div class="tree-item"
+                                                     :class="{ 'active': selectedFolder === child.id }"
+                                                     @click="selectFolder(child.id)">
+                                                    <i class="bi me-2"
+                                                       :class="child.expanded ? 'bi-folder-fill text-warning' : 'bi-folder text-warning'"></i>
+                                                    <span x-text="child.name"></span>
+                                                    <span class="badge bg-secondary ms-2" x-text="child.files.length"></span>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 파일 리스트 -->
+            <div class="col-md-8">
+                <div class="card h-100">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">
+                            <i class="bi bi-file-earmark me-2"></i>
+                            파일 목록
+                            <span x-text="selectedFolderName ? ` - ${selectedFolderName}` : ''"></span>
+                        </h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="file-list">
+                            <template x-if="currentFiles.length === 0">
+                                <div class="text-center py-5 text-muted">
+                                    <i class="bi bi-folder-x display-4"></i>
+                                    <p class="mt-3">폴더를 선택하면 파일 목록이 표시됩니다</p>
+                                </div>
+                            </template>
+                            
+                            <template x-if="currentFiles.length > 0">
+                                <div class="table-responsive">
+                                    <table class="table table-hover mb-0">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>파일명</th>
+                                                <th>크기</th>
+                                                <th>수정일</th>
+                                                <th>종류</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <template x-for="file in currentFiles" :key="file.id">
+                                                <tr class="file-item" @click="selectFile(file)">
+                                                    <td>
+                                                        <i class="bi me-2"
+                                                           :class="getFileIcon(file.type)"></i>
+                                                        <span x-text="file.name"></span>
+                                                    </td>
+                                                    <td x-text="formatFileSize(file.size)"></td>
+                                                    <td x-text="formatDate(file.modified)"></td>
+                                                    <td>
+                                                        <span class="badge"
+                                                              :class="getTypeBadgeClass(file.type)"
+                                                              x-text="file.type"></span>
+                                                    </td>
+                                                </tr>
+                                            </template>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 선택된 파일 정보 -->
+        <template x-if="selectedFile">
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="alert alert-info">
+                        <h6><i class="bi bi-info-circle me-2"></i>선택된 파일</h6>
+                        <strong x-text="selectedFile.name"></strong> 
+                        (<span x-text="formatFileSize(selectedFile.size)"></span>)
+                        <br>
+                        <small class="text-muted">
+                            수정일: <span x-text="formatDate(selectedFile.modified)"></span>
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </template>
+    </div>
+
+    <script>
+        function fileExplorer() {
+            return {
+                folders: [
+                    {
+                        id: 1,
+                        name: 'Documents',
+                        expanded: true,
+                        files: [
+                            { id: 1, name: 'report.docx', size: 1024000, type: 'document', modified: new Date('2024-01-15') },
+                            { id: 2, name: 'presentation.pptx', size: 2048000, type: 'presentation', modified: new Date('2024-01-14') }
+                        ],
+                        children: [
+                            {
+                                id: 2,
+                                name: 'Projects',
+                                expanded: false,
+                                files: [
+                                    { id: 3, name: 'project1.zip', size: 5120000, type: 'archive', modified: new Date('2024-01-10') },
+                                    { id: 4, name: 'notes.txt', size: 1024, type: 'text', modified: new Date('2024-01-12') }
+                                ],
+                                children: []
+                            }
+                        ]
+                    },
+                    {
+                        id: 3,
+                        name: 'Images',
+                        expanded: false,
+                        files: [
+                            { id: 5, name: 'photo1.jpg', size: 3072000, type: 'image', modified: new Date('2024-01-08') },
+                            { id: 6, name: 'photo2.png', size: 2048000, type: 'image', modified: new Date('2024-01-09') },
+                            { id: 7, name: 'logo.svg', size: 512000, type: 'image', modified: new Date('2024-01-11') }
+                        ],
+                        children: []
+                    },
+                    {
+                        id: 4,
+                        name: 'Videos',
+                        expanded: false,
+                        files: [
+                            { id: 8, name: 'tutorial.mp4', size: 104857600, type: 'video', modified: new Date('2024-01-05') },
+                            { id: 9, name: 'demo.avi', size: 52428800, type: 'video', modified: new Date('2024-01-07') }
+                        ],
+                        children: []
+                    }
+                ],
+                selectedFolder: null,
+                selectedFolderName: '',
+                currentFiles: [],
+                selectedFile: null,
+
+                selectFolder(folderId) {
+                    this.selectedFolder = folderId;
+                    const folder = this.findFolder(folderId);
+                    if (folder) {
+                        folder.expanded = !folder.expanded;
+                        this.selectedFolderName = folder.name;
+                        this.currentFiles = folder.files;
+                        this.selectedFile = null;
+                    }
+                },
+
+                findFolder(id) {
+                    for (let folder of this.folders) {
+                        if (folder.id === id) return folder;
+                        if (folder.children) {
+                            for (let child of folder.children) {
+                                if (child.id === id) return child;
+                            }
+                        }
+                    }
+                    return null;
+                },
+
+                selectFile(file) {
+                    this.selectedFile = file;
+                },
+
+                getFileIcon(type) {
+                    const icons = {
+                        'document': 'bi-file-earmark-text text-primary',
+                        'presentation': 'bi-file-earmark-slides text-danger',
+                        'image': 'bi-file-earmark-image text-success',
+                        'video': 'bi-file-earmark-play text-warning',
+                        'archive': 'bi-file-earmark-zip text-secondary',
+                        'text': 'bi-file-earmark-text text-info'
+                    };
+                    return icons[type] || 'bi-file-earmark text-muted';
+                },
+
+                getTypeBadgeClass(type) {
+                    const classes = {
+                        'document': 'bg-primary',
+                        'presentation': 'bg-danger',
+                        'image': 'bg-success',
+                        'video': 'bg-warning',
+                        'archive': 'bg-secondary',
+                        'text': 'bg-info'
+                    };
+                    return classes[type] || 'bg-secondary';
+                },
+
+                formatFileSize(bytes) {
+                    if (bytes === 0) return '0 B';
+                    const k = 1024;
+                    const sizes = ['B', 'KB', 'MB', 'GB'];
+                    const i = Math.floor(Math.log(bytes) / Math.log(k));
+                    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+                },
+
+                formatDate(date) {
+                    return date.toLocaleDateString('ko-KR', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit'
+                    });
+                }
+            }
+        }
+    </script>
+</body>
+</html>

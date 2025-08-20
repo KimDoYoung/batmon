@@ -1,9 +1,13 @@
 import os
+from backend.core.logger import get_logger
 import platform, socket, uuid, psutil, datetime
 from typing import Iterable
 from datetime import datetime, timedelta, timezone
 
 from backend.domains.system_schema import CPUInfo, DiskInfo, MemoryInfo, NetworkInfo, OSInfo, SystemStats, SystemSummary
+
+logger = get_logger(__name__)
+
 # 앞서 정의한 모델이 같은 모듈/패키지에 있다고 가정
 # from .models import OSInfo, CPUInfo, MemoryInfo, DiskInfo, NetworkInfo, SystemStats, SystemSummary
 
@@ -183,6 +187,31 @@ def dir_size(path: str,
 
     return total
 
+def get_directory_info(path:str) -> dict:
+    """
+    주어진 경로의 디렉토리 및 파일 정보를 반환합니다.
+    """
+    info = {
+        "path": path,
+        "size": dir_size(path),
+        "files": [],
+        "folders": [],
+    }
+
+    try:
+        with os.scandir(path) as it:
+            for entry in it:
+                if entry.is_file():
+                    info["files"].append(entry.name)
+                elif entry.is_dir():
+                    info["folders"].append(entry.name)
+    except Exception as e:
+        logger.exception("디렉토리 정보 조회 실패: %s", e)
+
+    return info
+
 if __name__ == "__main__":
-    from pprint import pprint
-    pprint(get_system_info())
+    # from pprint import pprint
+    # pprint(get_system_info())
+    dir_info = get_directory_info("c:/auto_esafe/log")
+    logger.info("디렉토리 정보: %s", dir_info)
