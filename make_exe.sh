@@ -47,6 +47,8 @@ uv run pyinstaller \
 echo ""
 if [ -f "dist/batmon.exe" ]; then
     cp ./BATMON.yml dist/
+    cp ./.env.local dist/
+    cp ./README.md dist/
     file_size=$(du -h "dist/batmon.exe" | cut -f1)
     echo "✓ SUCCESS: Build completed!"
     echo "   Output: dist/batmon.exe ($file_size)"
