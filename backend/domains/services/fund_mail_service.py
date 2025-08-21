@@ -49,6 +49,7 @@ class FundMailService(BaseService):
             else:
                 last_log = self._get_last_log()
                 last_log_time = self.get_last_log_time(last_log) if last_log else None
+                last_log = os.path.basename(last_log) if last_log else None
                 return self.success_status("Fund Mail 서비스가 정상적으로 동작 중입니다.", last_log, last_log_time)
 
         except Exception as e:

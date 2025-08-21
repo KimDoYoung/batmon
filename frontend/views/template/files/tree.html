@@ -26,26 +26,44 @@
               </div>
 
               <div class="ms-4 mt-2">
-                <!-- 동적 폴더 목록 -->
+                <!-- 재귀 폴더 트리 -->
                 <template x-for="folder in subfolders[ROOT] || []" :key="folder.path">
-                  <div class="mb-1">
+                <div class="mb-1">
                     <div class="d-flex align-items-center gap-1 folder-toggle"
-                         @click="toggle(folder.path); select(folder.path)">
-                      <i class="bi" :class="isOpen(folder.path) ? 'bi-folder2-open' : 'bi-folder2'"></i>
-                      <span x-text="folder.name"></span>
-                      <span class="ms-auto text-muted small"
+                        @click="toggle(folder.path); select(folder.path)">
+                    <i class="bi" :class="isOpen(folder.path) ? 'bi-folder2-open' : 'bi-folder2'"></i>
+                    <span x-text="folder.name"></span>
+                    <span class="ms-auto text-muted small"
                             x-text="loading ? '...' : (isOpen(folder.path) ? '−' : '+')"></span>
                     </div>
                     <div class="ms-4 mt-1" x-show="isOpen(folder.path)" x-transition>
-                      <template x-for="subFolder in subfolders[folder.path] || []" :key="subFolder.path">
+                    <!-- 재귀적으로 하위 폴더를 렌더링 -->
+                    <template x-for="subFolder in subfolders[folder.path] || []" :key="subFolder.path">
+                        <div>
+                        <!-- 동일한 구조 반복 -->
                         <div class="d-flex align-items-center gap-1 folder-toggle"
-                             @click.stop="select(subFolder.path)">
-                          <i class="bi" :class="selected===subFolder.path ? 'bi-folder2-open' : 'bi-folder2'"></i>
-                          <span x-text="subFolder.name"></span>
+                            @click="toggle(subFolder.path); select(subFolder.path)">
+                            <i class="bi" :class="isOpen(subFolder.path) ? 'bi-folder2-open' : 'bi-folder2'"></i>
+                            <span x-text="subFolder.name"></span>
+                            <span class="ms-auto text-muted small"
+                                x-text="loading ? '...' : (isOpen(subFolder.path) ? '−' : '+')"></span>
                         </div>
-                      </template>
+                        <div class="ms-4 mt-1" x-show="isOpen(subFolder.path)" x-transition>
+                            <!-- 또 하위 폴더가 있으면 재귀적으로 반복 -->
+                            <template x-if="subfolders[subFolder.path] && Array.isArray(subfolders[subFolder.path])">
+                                <template x-for="subSubFolder in subfolders[subFolder.path]" :key="subSubFolder.path">
+                                    <div class="d-flex align-items-center gap-1 folder-toggle"
+                                         @click.stop="select(subSubFolder.path)">
+                                        <i class="bi" :class="selected===subSubFolder.path ? 'bi-folder2-open' : 'bi-folder2'"></i>
+                                        <span x-text="subSubFolder.name"></span>
+                                    </div>
+                                </template>
+                            </template>
+                        </div>
+                        </div>
+                    </template>
                     </div>
-                  </div>
+                </div>
                 </template>
               </div>
             </div>
@@ -58,10 +76,10 @@
       <div class="col-12 col-md-8 col-lg-9">
         <div class="card h-100">
           <div class="card-header d-flex align-items-center gap-2">
-            <i class="bi bi-folder2-open"></i><span class="fw-bold">현재 경로:</span>
+            <i class="bi bi-folder2-open text-primary"></i><span class="fw-bold text-primary">현재 경로:</span>
             <nav aria-label="breadcrumb" class="flex-grow-1"><ol class="breadcrumb mb-0">
               <template x-for="(seg,i) in breadcrumb" :key="i">
-                <li class="breadcrumb-item" :class="{'active': i===breadcrumb.length-1}" x-text="seg"></li>
+                <li class="breadcrumb-item text-primary" :class="{'active': i===breadcrumb.length-1}" x-text="seg"></li>
               </template>
             </ol></nav>
             <span class="badge text-bg-secondary text-white ms-auto" x-text="folderSizeInfo"></span>
@@ -240,7 +258,16 @@ function fsApp(){
       if (folderPath === ROOT) {
         this.breadcrumb = [PROGRAM_NAME];
       } else {
-        const relativePath = folderPath.replace(ROOT, '').replace(/^\/+/, '');
+        // Windows/Linux 경로 모두 처리 (백슬래시를 슬래시로 변환)
+        const normalizedRoot = ROOT.replace(/\\/g, '/');
+        const normalizedPath = folderPath.replace(/\\/g, '/');
+        let relativePath = normalizedPath.replace(normalizedRoot, '').replace(/^\/+/, '');
+        if (relativePath.includes(PROGRAM_NAME)) {
+            const programIndex = relativePath.split('/').findIndex(segment => segment === PROGRAM_NAME);
+            if (programIndex !== -1) {
+                relativePath = relativePath.split('/').slice(programIndex + 1).join('/');
+            }
+        }
         this.breadcrumb = [PROGRAM_NAME, ...relativePath.split('/').filter(Boolean)];
       }
     },

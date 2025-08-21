@@ -38,6 +38,7 @@ class AutoEsafeService(BaseService):
                 return self.error_status(f"로그파일에서 ERROR 발견: {last_log_file}")
             else:
                 last_log_time = self.get_last_log_time(last_log_file)
+                last_log_file = os.path.basename(last_log_file) if last_log_file else None
                 return self.success_status("Auto_Esafe는 정상동작 중입니다.", last_log_file, last_log_time)
 
         except Exception as e:
