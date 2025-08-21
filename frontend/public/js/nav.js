@@ -27,4 +27,3 @@ function navData() {
         }
     };
 }
-//TODO : 서버에서  yml을 가져오기, 서버에서 시간을 받기
