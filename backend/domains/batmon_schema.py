@@ -10,6 +10,7 @@ class ServiceStatus(BaseModel):
     status: str  # "OK", "ERROR", "WARNING"
     message: str
     last_log: Optional[str] = None
+    last_log_time: Optional[str] = None
     last_updated: Optional[datetime] = None
     base_dir: str
     scheduler: str

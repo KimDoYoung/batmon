@@ -47,7 +47,9 @@ class FundMailService(BaseService):
             if last_file_datetime and (datetime.now() - last_file_datetime).total_seconds() > 600:
                 return self.error_status(f"최근 파일의 시간 차이가 10분을 초과합니다.: 마지막 파일: {last_file}, 시간: {last_file_datetime}")
             else:
-                return self.success_status("Fund Mail 서비스가 정상적으로 동작 중입니다.")
+                last_log = self._get_last_log()
+                last_log_time = self.get_last_log_time(last_log) if last_log else None
+                return self.success_status("Fund Mail 서비스가 정상적으로 동작 중입니다.", last_log, last_log_time)
 
         except Exception as e:
             return self.error_status(f"Error checking service: {str(e)}")
@@ -98,16 +100,8 @@ class FundMailService(BaseService):
     def _get_last_log(self) -> Optional[str]:
         """마지막 로그를 가져옵니다."""
         log_file = os.path.join(self.base_dir, "logs", "fund_mail.log")
-        
-        if not os.path.exists(log_file):
-            return None
-            
-        try:
-            with open(log_file, 'r', encoding='utf-8') as f:
-                lines = f.readlines()
-                return lines[-1].strip() if lines else None
-        except Exception as e:
-            return f"Error reading log file: {str(e)}"
+        return log_file if os.path.exists(log_file) else None            
+
     
     def _check_windows_service(self) -> bool:
         """

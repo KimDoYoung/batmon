@@ -31,15 +31,16 @@ class KindscrapService(BaseService):
 
             last_log_file = self._get_last_log()
 
-            if not last_log_file:
-                return self.error_status(f"로그 파일을 찾을 수 없습니다. {self.log_dir}")
-            
-            result = self.result_of_logfile(last_log_file)
+            if not last_log_file or not os.path.exists(last_log_file):
+                return self.error_status(f"오늘의 로그 파일을 찾을 수 없습니다.")
+
+            result = self.result_of_logfile(last_log)
             if result == "ERROR":
                 return self.error_status(f"로그 파일에서 오류를 발견했습니다: {last_log_file}")
             else:
-                return self.success_status("kindscrap 정상동작 중입니다")   
-            
+                last_log_time = self.get_last_log_time(last_log_file)
+                return self.success_status("kindscrap 정상동작 중입니다", last_log_file, last_log_time)
+
         except Exception as e:
             return self.error_status(f"Error checking service: {str(e)}")
     
@@ -48,9 +49,6 @@ class KindscrapService(BaseService):
         ymd = datetime.now().strftime('%Y_%m_%d')
         filename = f"kindscrap_{ymd}.log"
         log_file = os.path.join(self.log_dir,  filename)
-
-        if not os.path.exists(log_file):
-            return None
             
         return log_file
     

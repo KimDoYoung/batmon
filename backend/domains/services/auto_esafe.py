@@ -32,12 +32,13 @@ class AutoEsafeService(BaseService):
             # 로그 파일이 있는지 체크 
             last_log_file = self._get_last_log()
             if not last_log_file or not os.path.exists(last_log_file):
-                return self.error_status(f"생성되어야 할 로그파일을 찾지 못함: {last_log_file}")
+                return self.error_status(f"생성되어야 할 로그파일을 찾지 못함"  )
             result = self.result_of_logfile(last_log_file)
             if result == "ERROR":
                 return self.error_status(f"로그파일에서 ERROR 발견: {last_log_file}")
             else:
-                return self.success_status("Auto_Esafe는 정상동작 중입니다.", last_log_file)
+                last_log_time = self.get_last_log_time(last_log_file)
+                return self.success_status("Auto_Esafe는 정상동작 중입니다.", last_log_file, last_log_time)
 
         except Exception as e:
             return self.error_status(f"Error checking service: {str(e)}")
@@ -47,10 +48,9 @@ class AutoEsafeService(BaseService):
         ymd = datetime.now().strftime('%Y_%m_%d')
         # ymd = "2025_08_13"
         log_file = os.path.join(self.log_dir, f"auto_esafe_{ymd}.log")
-
-        if not os.path.exists(log_file):
-            return None
         return log_file
+
+
     
     def _check_scheduler_task(self) -> bool:
         """
