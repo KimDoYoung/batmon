@@ -13,6 +13,19 @@
   - .env.local을  사용하게 함.
   - 기본 PORT를 8002로 사용함
 
+- [nssm](https://coding-shop.tistory.com/463)을 이용해 봄
+  - 다운로드하면 32bit/64bit가 있음. 
+  - 64bit용을 $HOME/.local/bin에 넣음.
+  - 172.20.100.65
+  ```bash
+  nssm --version
+  nssm install (GUI화면이 뜸)
+  nssm start Batmon
+  nssm status Batmon
+  nssm stop Batmon
+  ```
+  
+
 ## 기술스택
 
 - python fastapi로 작성

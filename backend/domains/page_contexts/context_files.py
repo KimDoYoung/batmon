@@ -18,14 +18,42 @@ def files_tree(context):
         "base_dir": program_config.get("base_dir", ""),
         "description": program_config.get("description", ""),
     }
-
+def batmon_log(file_path):
+    try:
+        # full_path = os.path.join("c:\\batmon", file_path)
+        full_path = file_path
+        with open(full_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        file_type = "text"
+    except UnicodeDecodeError:
+        # UTF-8로 읽기 실패시 다른 인코딩 시도
+        try:
+            with open(full_path, 'r', encoding='cp949') as f:
+                content = f.read()
+            file_type = "text"
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"파일 인코딩 오류: {str(e)}")    
+    return {
+            "title" : "Batmon로그",
+            "file_name": "batmon.log",
+            "file_type": "text",
+            "content": content,
+            "program_name": "batmon",
+            "file_path": file_path,
+            "file_ext": ".log",
+            "file_size": 0,
+            "base_dir": "c:\\batmon"
+    }
 def files_view(context):
     """파일 보기 페이지용 컨텍스트 데이터를 생성합니다."""
     logger.info("files_view 컨텍스트 생성")
-    
     # URL 파라미터에서 데이터 추출
     program_name = context.get("program_name", "unknown")
     file_path = context.get("file_path", "")
+
+    # 시스템로그 보는 것 야매로
+    if program_name == "batmon":
+        return batmon_log(file_path)
     
     logger.debug(f"files_view: program_name={program_name}, file_path={file_path}")
     

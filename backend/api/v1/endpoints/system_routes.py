@@ -98,6 +98,13 @@ def file_download(program_name: str, file_path: str, request: Request):
     logger.info("파일 다운로드 요청: program=%s, path=%s", program_name, file_path)
     
     try:
+        if program_name == "batmon":
+            file_name = "batmon.log"
+            return FileResponse(
+                path=file_path,
+                filename=file_name,
+                media_type='text/plain'
+            )
         # 프로그램 설정 가져오기
         program_config = config.get_program(program_name)
         if not program_config:
