@@ -73,7 +73,7 @@ def get_dirs(name: str, subpath: str = "", request: Request = None):
         dir_info = get_directory_info(
             path, 
             recursive=False, 
-            max_depth=2, 
+            max_depth=3, 
             include_hidden=True, 
             compute_size=True
         )
