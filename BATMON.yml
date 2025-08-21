@@ -7,7 +7,7 @@ programs:
     run_time : ["0130"]
 
   - name : "auto_esafe"
-    description: "esafe프로그램 구동, 필요한 파일 다운로드"
+    description: "한국예탁결제원에서 필요한 파일 다운로드"
     base_dir: "c:\\auto_esafe"
     scheduler: "taskschd.msc"
     run_time : ["0630", "1830"]

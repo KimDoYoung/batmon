@@ -40,51 +40,50 @@
   <!-- 상단: PC / OS 요약 카드 -->
   <div class="card mb-4">
     <div class="card-body">
-      <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+      <div class="d-flex flex-wrap align-items-start justify-content-between gap-2" style="margin-bottom: 0.1rem;">
         <div>
-          <div class="d-flex align-items-center gap-2 mb-1">
+          <div class="d-flex align-items-center gap-2">
             <h2 class="h5 mb-0" x-text="system?.os?.hostname || 'HOSTNAME'"></h2>
             <span class="badge text-bg-secondary" x-text="system?.os?.descriptions || 'OS'"></span>
           </div>
           <div class="text-muted small">
-            부팅: <span x-text="fmtTime(system?.stats?.boot_time) || '-'"></span> 
-            · 경과시간 : <span class="mono" x-text="system?.stats?.uptime_human || '-'"></span>
+            CPU : <span class="mono" x-text="system?.cpu?.processor || '-'" ></span>
           </div>
           <div class="text-muted small">
-            IP: <span class="mono" x-text="system?.network?.ip || '-'"></span>
-            · MAC: <span class="mono" x-text="system?.network?.mac || '-'"></span>
+            부팅: <span x-text="fmtTime(system?.stats?.boot_time) || '-'" ></span> 
+            · 경과시간 : <span class="mono" x-text="system?.stats?.uptime_human || '-'" ></span>
+          </div>
+          <div class="text-muted small">
+            IP: <span class="mono" x-text="system?.network?.ip || '-'" ></span>
+            · MAC: <span class="mono" x-text="system?.network?.mac || '-'" ></span>
+          </div>
+          <div class="text-muted small">
+            물리 코어: <span class="mono" x-text="system?.cpu?.physical_cores || '-'" ></span>
+            · 논리 코어: <span class="mono" x-text="system?.cpu?.logical_cores || '-'" ></span>
           </div>
         </div>
-        <div class="row w-100 mt-2 g-3">
+        <div class="row w-100 mt-1 g-2">
           <div class="col-12 col-md-4">
-            <div class="stat-kv d-flex"><div class="key">CPU</div><div class="flex-grow-1 mono" x-text="system?.cpu?.processor || '-'"></div></div>
-            <div class="stat-kv d-flex">
-              <div class="key">물리/논리 코어</div>
-              <div class="flex-grow-1">
-                <span x-text="system?.cpu?.physical_cores ?? '-'"></span> / 
-                <span x-text="system?.cpu?.logical_cores ?? '-'"></span> 
-              </div>
-            </div>
+            
           </div>
 
           <div class="col-12 col-md-4">
-            <div class="stat-kv d-flex"><div class="key">메모리</div><div class="flex-grow-1" x-text="`${system.memory?.used_gb || '-'} / ${system.memory?.total_gb || '-'} GB`"></div></div>
+            <div class="stat-kv d-flex"><div class="key">메모리</div><div class="flex-grow-1" x-text="`${system.memory?.used_gb || '-'} / ${system.memory?.total_gb || '-'} GB`" ></div></div>
             <div class="progress mt-1" role="progressbar" :aria-valuenow="Math.round(memUsedPct())" aria-valuemin="0" aria-valuemax="100">
-              <div class="progress-bar" :style="`width:${memUsedPct()}%`" x-text="`${Math.round(memUsedPct())}%`"></div>
+              <div class="progress-bar" :style="`width:${memUsedPct()}%`" x-text="`${Math.round(memUsedPct())}%`" ></div>
             </div>
           </div>
 
           <div class="col-12 col-md-4">
             <div class="stat-kv d-flex"><div class="key">디스크</div>
-              <div class="flex-grow-1" x-text="`${system.disk?.used_gb} / ${system?.disk?.total_gb || '-'} GB`"></div>
+              <div class="flex-grow-1" x-text="`${system.disk?.used_gb} / ${system?.disk?.total_gb || '-'} GB`" ></div>
             </div>
             <div class="progress mt-1" role="progressbar" :aria-valuenow="Math.round(diskUsedPct())" aria-valuemin="0" aria-valuemax="100">
-              <div class="progress-bar" :style="`width:${diskUsedPct()}%`" x-text="`${Math.round(diskUsedPct())}%`"></div>
+              <div class="progress-bar" :style="`width:${diskUsedPct()}%`" x-text="`${Math.round(diskUsedPct())}%`" ></div>
             </div>
           </div>
         </div>
       </div>
-
       <!-- 요약 바 -->
       <div class="d-flex flex-wrap align-items-center gap-2 mt-3">
         <span class="badge" :class="overallBadgeClass()" x-text="`전체 상태: ${health.overall_status || '-'}`"></span>

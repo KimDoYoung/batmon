@@ -16,6 +16,17 @@ logger = get_logger(__name__)
 
 router = APIRouter()
 
+@router.get("/time",  include_in_schema=True)
+def time(request: Request):
+
+    """
+    서버의 시간을 리턴합니다.
+    """
+    from datetime import datetime
+    now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    content =  {"time": now}
+    return content
+
 @router.get("/info", response_model=SystemSummary, include_in_schema=True)
 def info(request: Request):
     """

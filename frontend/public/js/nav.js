@@ -2,7 +2,11 @@ function navData() {
     return {
         currentTime: '',
         init() {
-            this.updateTime();
+            // 서버에서 시간을 가져오는 API 호출
+            const url = "/api/v1/system/time";
+            getFetch(url).then(data => {
+                this.currentTime = data.time;
+            });
             setInterval(() => {
                 this.updateTime();
             }, 1000);
