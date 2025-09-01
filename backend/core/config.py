@@ -62,6 +62,7 @@ class Config:
                 'base_dir': raw.get('base_dir', ''),
                 'scheduler': raw.get('scheduler', ''),   # e.g. "taskschd.msc" | "windows service"
                 'run_time': raw.get('run_time', []),     # e.g. ["0630","1830"] 또는 "*/5min" 등
+                'retry_program': raw.get('retry_program', ''), # e.g. "run_kindscrap.bat"
             })
         return norm
 

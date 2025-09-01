@@ -15,6 +15,8 @@ class ServiceStatus(BaseModel):
     base_dir: str
     scheduler: str
     run_time: List[str]
+    retry_program: str # fullpath
+    retry_program_name: str # 프로그램 이름
 
 class HealthCheckResponse(BaseModel):
     timestamp: datetime

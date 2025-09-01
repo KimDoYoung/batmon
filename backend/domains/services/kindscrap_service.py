@@ -46,6 +46,24 @@ class KindscrapService(BaseService):
         except Exception as e:
             return self.error_status(f"Error checking service: {str(e)}")
     
+    def rerun(self) -> ServiceStatus:
+        """
+        Kindscrap 서비스를 재실행합니다.
+        """
+        try:
+            logger.info("kindscrap 서비스 재실행 시작")
+            program = self.retry_program
+            if not program or not os.path.exists(program):
+                return self.error_status(f"재실행할 프로그램이 설정되지 않았거나 존재하지 않습니다: {program}")
+            is_running = self._process_is_running(program)
+            if is_running:
+                return self.success_status("kindscrap 서비스가 이미 실행 중입니다.")
+            self._run()
+            logger.info("kindscrap 서비스 재실행 완료")
+            return self.success_status("kindscrap 서비스가 재실행되었습니다.")
+        except Exception as e:
+            return self.error_status(f"프로그램 실행 실패: {str(e)}")    
+
     def _get_last_log(self) -> Optional[str]:
         """마지막 로그를 가져옵니다."""
         ymd = datetime.now().strftime('%Y_%m_%d')

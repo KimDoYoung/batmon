@@ -1,11 +1,15 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
 import os
+import subprocess
 from typing import Optional
 
+from pathlib import Path
 from backend.core.config import config
 from backend.domains.batmon_schema import ServiceStatus
+from backend.core.logger import get_logger
 
+logger = get_logger(__name__)
 
 class BaseService(ABC):
     def __init__(self, program_name: str):
@@ -21,6 +25,8 @@ class BaseService(ABC):
         self.base_dir = program_config.get('base_dir', '')
         self.scheduler = program_config.get('scheduler', '')
         self.run_time = program_config.get('run_time', [])
+        self.retry_program_name = program_config.get('retry_program', '')
+        self.retry_program = os.path.join(self.base_dir, self.retry_program_name) if self.retry_program_name else ''
         self.log_dir = os.path.join(self.base_dir, "log")
 
     def _create_status(self, status: str, message: str, last_log: Optional[str] = None, last_log_time: Optional[str] = None) -> ServiceStatus:
@@ -35,7 +41,9 @@ class BaseService(ABC):
             last_updated=datetime.now(),
             base_dir=self.base_dir,
             scheduler=self.scheduler,
-            run_time=self.run_time
+            run_time=self.run_time,
+            retry_program=self.retry_program,
+            retry_program_name=self.retry_program_name
         )
     
     def success_status(self, message: str = "Service is running properly", last_log: Optional[str] = None, last_log_time:Optional[str]=None) -> ServiceStatus:
@@ -77,6 +85,52 @@ class BaseService(ABC):
                         return line[:19]
         except Exception:
             return None
+
+    def _process_is_running(self, program: str):
+            """
+            주어진 프로그램이 현재 실행 중인지 확인합니다.
+            """
+            try:
+                # tasklist 명령어로 현재 실행 중인 프로세스 목록 가져오기
+                result = subprocess.run(
+                    ['tasklist', '/FI', f'IMAGENAME eq {os.path.basename(program)}'],
+                    capture_output=True,
+                    text=True,
+                    timeout=10
+                )
+                
+                if result.returncode == 0:
+                    output = result.stdout.lower()
+                    return os.path.basename(program).lower() in output
+                
+                return False
+                
+            except Exception as e:
+                logger.error(f"Error checking process: {str(e)}")
+                return False
+        
+    def _run(self):
+        """ 프로그램을 실행한다. """
+        program = self.retry_program
+
+        if not program:
+            raise ValueError("실행할 프로그램이 지정되지 않았습니다.")
+
+        program_path = Path(program)
+        if not program_path.exists():
+            raise FileNotFoundError(f"실행할 프로그램이 존재하지 않습니다: {program_path}")
+
+        try:
+            subprocess.Popen(
+                ["cmd", "/c", str(program_path)],
+                cwd=program_path.parent,
+                shell=False,
+                close_fds=True,
+                creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP
+            )
+            return
+        except Exception as e:
+            raise RuntimeError(f"실행 실패: {program_path} ({e})")
 
     @abstractmethod
     def check(self) -> ServiceStatus:

@@ -1,5 +1,6 @@
 import datetime
 
+
 from backend.core.logger import get_logger
 from fastapi import APIRouter
 from datetime import datetime, timezone, timedelta
@@ -56,3 +57,18 @@ def check():
         ok_count=ok_count,
         error_count=error_count
     )
+
+@router.get("/rerun", response_model=HealthCheckResponse, include_in_schema=True)
+def rerun(program: str):
+    ''' 프로그램을 실행한다. '''
+    if program not in ["auto_esafe", "kindscrap"]:
+        raise ValueError("Unknown program")
+
+    if program == "auto_esafe":
+        autoesafe = AutoEsafeService("auto_esafe")
+        service = autoesafe.rerun()
+    elif program == "kindscrap":
+        kindscrap = KindscrapService("kindscrap")
+        service = kindscrap.rerun()
+
+    return service

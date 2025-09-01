@@ -5,15 +5,18 @@ programs:
     base_dir: "c:\\kindscrap"
     scheduler: "taskschd.msc"
     run_time : ["0130"]
+    retry_program: "run_kindscrap.bat"
 
   - name : "auto_esafe"
     description: "한국예탁결제원에서 필요한 파일 다운로드"
     base_dir: "c:\\auto_esafe"
     scheduler: "taskschd.msc"
     run_time : ["0630", "1830"]
+    retry_program: "auto_esafe_1.1.2.exe"
 
   - name : "fund_mail"
     description: "펀드메일 수집 프로그램"
     base_dir: "c:\\fund_mail"
     scheduler: "window service"
     run_time : ["5분간격"]
+    retry_program: ""

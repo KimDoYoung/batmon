@@ -142,6 +142,12 @@
 
             <div class="mt-auto pt-3 d-flex gap-2">
               <button class="btn btn-sm btn-outline-primary" @click="openFiles(svc)">파일탐색</button>
+              <!-- 재시도 프로그램 -->
+              <template x-if="svc.retry_program && svc.retry_program.trim() !== ''">
+                  <button class="btn btn-sm btn-outline-warning" @click="rerun(svc)">
+                      프로그램 실행
+                  </button>
+              </template>
             </div>
           </div>
         </div>
@@ -277,18 +283,7 @@ function batmonDashboard() {
     async takeScreenshot() {
         this.screenshotLoading = true;
         try {
-            const response = await fetch('/api/v1/system/screenshot', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
-            });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            const result = await response.json();
+            const result = await postFetch('/api/v1/system/screenshot', {});
             console.log('Screenshot result:', result);
             
             if (result.success) {
@@ -309,7 +304,11 @@ function batmonDashboard() {
             
         } catch (e) {
             console.error('Screenshot failed:', e);
-            alert('화면 캡쳐에 실패했습니다: ' + e.message);
+            if (e instanceof BatmonError) {
+                alert(`화면 캡쳐에 실패했습니다: ${e.message} (${e.status})`);
+            } else {
+                alert('화면 캡쳐에 실패했습니다: ' + e.message);
+            }
         } finally {
             this.screenshotLoading = false;
         }
@@ -374,13 +373,27 @@ function batmonDashboard() {
       const url = `/page?path=files/tree&name=${encodeURIComponent(program_name)}`;
       window.open(url);
     },
-    rerun(svc) {
-      // 예: /api/run?program=...
-      if (!confirm(`[${svc.name}] 재실행 하시겠습니까?`)) return;
-      fetch(`/api/run?program=${encodeURIComponent(svc.name)}`)
-        .then(r => r.json())
-        .then(() => this.refresh())
-        .catch(() => alert('재실행 요청 실패'));
+    async rerun(svc) {
+        // 예: /api/run?program=...
+        if (!confirm(`[${svc.name}] 재실행 하시겠습니까?`)) return;
+        
+        try {
+            const result = await getFetch(`/api/v1/batmon/rerun?program=${encodeURIComponent(svc.name)}`);
+            console.log('Rerun result:', result);
+            
+            if (result.success) {
+                alert(`[${svc.name}] 재실행이 시작되었습니다.`);
+            } else {
+                alert(`[${svc.name}] 재실행에 실패했습니다: ${result.message || '알 수 없는 오류'}`);
+            }
+        } catch (e) {
+            console.error('Rerun failed:', e);
+            if (e instanceof BatmonError) {
+                alert(`[${svc.name}] 재실행에 실패했습니다: ${e.message} (${e.status})`);
+            } else {
+                alert(`[${svc.name}] 재실행에 실패했습니다: ${e.message}`);
+            }
+        }
     }
   };
 }
