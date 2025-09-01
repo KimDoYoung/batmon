@@ -1,5 +1,7 @@
 import mimetypes
 import os
+import tempfile
+from datetime import datetime
 from pathlib import Path
 
 from fastapi.responses import FileResponse, StreamingResponse
@@ -190,3 +192,78 @@ def stream_file(program_name: str, file_path: str, request: Request):
     except Exception as e:
         logger.exception("파일 스트리밍 실패: %s", e)
         raise HTTPException(status_code=500, detail=f"파일 스트리밍에 실패했습니다: {str(e)}")
+
+
+@router.post("/screenshot", include_in_schema=True)
+def take_screenshot(request: Request):
+    """
+    현재 화면을 캡쳐하여 임시 폴더에 저장하고 다운로드 링크를 반환합니다.
+    """
+    logger.info("화면 캡쳐 요청")
+    try:
+        import pyautogui
+        from PIL import Image
+        
+        # 화면 캡쳐
+        screenshot = pyautogui.screenshot()
+        
+        # 임시 폴더에 저장
+        temp_dir = Path(tempfile.gettempdir()) / "batmon_screenshots"
+        temp_dir.mkdir(exist_ok=True)
+        
+        # 파일명 생성 (타임스탬프 포함)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"screenshot_{timestamp}.png"
+        filepath = temp_dir / filename
+        
+        # 이미지 저장
+        screenshot.save(str(filepath), "PNG")
+        
+        logger.info(f"화면 캡쳐 완료: {filepath}")
+        
+        return {
+            "success": True,
+            "message": "화면 캡쳐가 완료되었습니다.",
+            "filename": filename,
+            "filepath": str(filepath),
+            "download_url": f"/api/v1/system/screenshot/download/{filename}",
+            "timestamp": timestamp
+        }
+        
+    except ImportError as e:
+        logger.error(f"화면 캡쳐 라이브러리 오류: {e}")
+        raise HTTPException(status_code=500, detail="화면 캡쳐 라이브러리가 설치되지 않았습니다.")
+    except Exception as e:
+        logger.exception("화면 캡쳐 실패: %s", e)
+        raise HTTPException(status_code=500, detail=f"화면 캡쳐에 실패했습니다: {str(e)}")
+
+
+@router.get("/screenshot/download/{filename}", include_in_schema=True)
+def download_screenshot(filename: str, request: Request):
+    """
+    저장된 스크린샷 파일을 다운로드합니다.
+    """
+    logger.info(f"스크린샷 다운로드 요청: {filename}")
+    try:
+        # 보안을 위해 파일명 검증
+        if not filename.startswith("screenshot_") or not filename.endswith(".png"):
+            raise HTTPException(status_code=400, detail="잘못된 파일명입니다.")
+        
+        temp_dir = Path(tempfile.gettempdir()) / "batmon_screenshots"
+        filepath = temp_dir / filename
+        
+        if not filepath.exists():
+            raise HTTPException(status_code=404, detail="스크린샷 파일을 찾을 수 없습니다.")
+        
+        return FileResponse(
+            path=str(filepath),
+            filename=filename,
+            media_type="image/png",
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("스크린샷 다운로드 실패: %s", e)
+        raise HTTPException(status_code=500, detail=f"스크린샷 다운로드에 실패했습니다: {str(e)}")

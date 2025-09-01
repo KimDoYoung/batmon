@@ -20,6 +20,22 @@
                 <label class="form-check-label" for="autoRefresh1">자동 새로고침(30s)</label>
             </div>
             
+            <button class="btn btn-sm btn-outline-success"
+                    @click="takeScreenshot()" 
+                    :disabled="screenshotLoading">
+                <template x-if="!screenshotLoading">
+                    <span class="d-inline-flex align-items-center">
+                        <i class="bi bi-camera me-1"></i> 화면캡쳐
+                    </span>
+                </template>
+                <template x-if="screenshotLoading">
+                    <span class="d-inline-flex align-items-center">
+                        <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                        캡쳐중…
+                    </span>
+                </template>
+            </button>
+            
             <button class="btn btn-sm btn-outline-primary btn-refresh"
                     @click="refresh()" 
                     :disabled="loading">
@@ -206,6 +222,7 @@ function batmonDashboard() {
 
   return {
     loading: false,
+    screenshotLoading: false,
     autoRefresh: false,
     _timer: null,
 
@@ -254,6 +271,47 @@ function batmonDashboard() {
             this.health = fallbackHealth;
         } finally {
             this.loading = false;
+        }
+    },
+
+    async takeScreenshot() {
+        this.screenshotLoading = true;
+        try {
+            const response = await fetch('/api/v1/system/screenshot', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const result = await response.json();
+            console.log('Screenshot result:', result);
+            
+            if (result.success) {
+                // 다운로드 링크로 자동 다운로드
+                const downloadUrl = result.download_url;
+                const link = document.createElement('a');
+                link.href = downloadUrl;
+                link.download = result.filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                // 성공 메시지 표시 (옵션)
+                alert('화면 캡쳐가 완료되어 다운로드되었습니다.');
+            } else {
+                throw new Error(result.message || '화면 캡쳐에 실패했습니다.');
+            }
+            
+        } catch (e) {
+            console.error('Screenshot failed:', e);
+            alert('화면 캡쳐에 실패했습니다: ' + e.message);
+        } finally {
+            this.screenshotLoading = false;
         }
     },
 
