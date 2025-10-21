@@ -19,8 +19,8 @@
                 <input class="form-check-input" type="checkbox" id="autoRefresh1" x-model="autoRefresh">
                 <label class="form-check-label" for="autoRefresh1">자동 새로고침(30s)</label>
             </div>
-            
-            <button class="btn btn-sm btn-outline-success"
+
+            <button aria-label="화면 캡쳐" class="btn btn-sm btn-outline-success"
                     @click="takeScreenshot()" 
                     :disabled="screenshotLoading">
                 <template x-if="!screenshotLoading">
@@ -36,7 +36,7 @@
                 </template>
             </button>
             
-            <button class="btn btn-sm btn-outline-primary btn-refresh"
+            <button aria-label="새로고침" class="btn btn-sm btn-outline-primary btn-refresh"
                     @click="refresh()" 
                     :disabled="loading">
                 <template x-if="!loading">

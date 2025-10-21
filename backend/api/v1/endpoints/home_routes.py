@@ -10,10 +10,12 @@
 """
 from fastapi import APIRouter, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
+
 from backend.core.config import config
 from backend.core.logger import get_logger
 from backend.core.template_engine import render_template
 from backend.domains.page_contexts.context_registry import PAGE_CONTEXT_PROVIDERS
+
 logger = get_logger(__name__)
 
 router = APIRouter()
@@ -58,12 +60,12 @@ async def page(
     page_page = path.lstrip('/')
     page_path = page_page if page_page else "main"
     version = config.VERSION
-    
+    logger.debug(f"VERSION: {version}")
     logger.debug(f"page 함수 호출: path={path}, page_path={page_path}")
     logger.debug(f"query_params: {dict(request.query_params)}")
     
     context = { 
-                "_version": "0.0.1",
+                "_version": version,
                 "request": request,  
                 "page_path": page_path,
                 **extra_params

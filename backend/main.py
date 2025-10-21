@@ -4,14 +4,15 @@ import sys
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
-from backend.core.logger import get_logger
-from backend.core.config import config
-from backend.api.v1.endpoints.home_routes import router as home_router
 from backend.api.v1.endpoints.batmon_routes import router as batmon_router
+from backend.api.v1.endpoints.home_routes import router as home_router
 from backend.api.v1.endpoints.system_routes import router as system_router
+from backend.core.batmon_db import (
+    create_batmon_db,  # Add this import (adjust path if needed)
+)
+from backend.core.config import config
 from backend.core.exception_handler import add_exception_handlers
-from backend.core.batmon_db import create_batmon_db  # Add this import (adjust path if needed)
-
+from backend.core.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -52,8 +53,11 @@ async def startup_event():
     logger.info('▶️  Startup 프로세스 시작')
     logger.info('---------------------------------')
 
-    config.reload_yaml(force=True)
-    logger.info(f"현재 BATMON.yml 로딩함...")
+    b = config.reload_yaml(force=True)
+    if b:
+        logger.info(f"BATMON.yml 파일을 다시 로딩했습니다: {config.YAML_PATH} (프로그램 수: {len(config.programs)})")
+    else:
+        logger.error(f"BATMON.yml 파일이 존재하지 않거나 변경되지 않았습니다: {config.YAML_PATH}")
 
     db_path = config.DB_PATH 
     parent_dir = os.path.dirname(db_path)

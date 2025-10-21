@@ -16,7 +16,7 @@ programs:
 
   - name : "fund_mail"
     description: "펀드메일 수집 프로그램"
-    base_dir: "c:\\fund_mail"
+    base_dir: "c:\\fund_mail\\real_time"
     scheduler: "window service"
     run_time : ["5분간격"]
     retry_program: ""

@@ -1,15 +1,18 @@
 # config.py
-from dotenv import load_dotenv
+import os
 from pathlib import Path
-import os, yaml
 from typing import Any, Dict, List, Optional
+
+import yaml
+from dotenv import load_dotenv
+
 
 class Config:
     def __init__(self):
         # 1) 기존 .env 기반 설정 (유지)
         self.PROFILE_NAME = os.getenv('BATMON_MODE', 'local')
         load_dotenv(dotenv_path=f'.env.{self.PROFILE_NAME}')
-        self.VERSION = os.getenv('VERSION', '0.0.1')
+        self.VERSION = os.getenv('VERSION', '0.0.3')
         self.PORT = int(os.getenv('PORT', 8002))
 
         # 2) 경로/로그 (유지)
@@ -31,12 +34,13 @@ class Config:
 
         self.reload_yaml(force=True)
 
+
     # --- YAML 처리부 ---------------------------------------------------------
-    def reload_yaml(self, force: bool = False) -> None:
+    def reload_yaml(self, force: bool = False) -> bool:
         """BATMON.yml 변경 시 다시 읽어들이고, programs에 반영"""
         if not self.YAML_PATH.exists():
             self.programs = []
-            return
+            return False
 
         mtime = self.YAML_PATH.stat().st_mtime
         if force or mtime > self._yaml_mtime:
@@ -44,6 +48,7 @@ class Config:
                 data = yaml.safe_load(f) or {}
             self.programs = self._validate_and_normalize(data)
             self._yaml_mtime = mtime
+            return True
 
     def _validate_and_normalize(self, data: Dict[str, Any]) -> List[Dict[str, Any]]:
         """스키마 최소 검증 + 기본값 주입"""

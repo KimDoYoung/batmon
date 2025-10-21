@@ -8,15 +8,16 @@
 
 ## 빌드
 
-- make_exe.sh 
+- make_exe.sh
   - pyinstaller를 사용하여 dist/batmon.exe를 만듬
   - .env.local을  사용하게 함.
   - 기본 PORT를 8002로 사용함
 
 - [nssm](https://coding-shop.tistory.com/463)을 이용해 봄
-  - 다운로드하면 32bit/64bit가 있음. 
+  - 다운로드하면 32bit/64bit가 있음.
   - 64bit용을 $HOME/.local/bin에 넣음.
   - 172.20.100.65
+
   ```bash
   nssm --version
   nssm install (GUI화면이 뜸)
@@ -24,16 +25,21 @@
   nssm status Batmon
   nssm stop Batmon
   ```
-  
+
+## 업그레드 방법
+
+1. env.local에 버젼이 있음.
+2. make_exe.sh
 
 ## 기술스택
 
 - python fastapi로 작성
-- window 11 service로 등록해서 동작하게 함. 
+- window 11 service로 등록해서 동작하게 함.
 - port 8002 사용
 - pip대신 uv를 사용
 
 ### backend
+
 - uvicorn
 - fastapi
 - sqlite db
@@ -66,6 +72,8 @@
 - 주요기능 즉 프로그램 실패를 확인하고 재실행을 할때 내장된 비밀번호(hard coding)를 넣게끔해서 수행
 
 ## HISTORY
+
 | 버전  | 날짜        | 주요 변경사항 |
 |-------|-------------|---------------|
 | 0.0.2 | 2025-09-01 | • 메인에 화면 캡처 기능 버튼 추가<br>• 프로그램 수행 기능(auto_esafe, kindscrap) 추가 |
+| 0.0.3 | 2025-10-21 | • fund_mail의 위치가 c:/fund_main/real_time으로 변경됨 |

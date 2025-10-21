@@ -50,17 +50,17 @@ if [ -f "dist/batmon.exe" ]; then
     cp ./.env.local dist/
     cp ./README.md dist/
     file_size=$(du -h "dist/batmon.exe" | cut -f1)
-    echo "✓ SUCCESS: Build completed!"
+    echo "✅ SUCCESS: Build completed!"
     echo "   Output: dist/batmon.exe ($file_size)"
     if [ ${#ENV_ARGS[@]} -gt 0 ]; then
-        echo "   Config: Environment file included in exe"
+        echo "   설정파일이 복사되었습니다."
     fi
     echo ""
-    echo "Next steps:"
+    echo "✅ 아래와 같이 확인 바랍니다:"
     echo "   - Test: ./dist/batmon.exe"
     echo "   - Access: http://localhost:8002 (or port from .env.local)"
 else
-    echo "✗ FAILED: Build failed!"
+    echo "❌ FAILED: Build failed!"
     echo "   Check the error messages above"
     exit 1
 fi

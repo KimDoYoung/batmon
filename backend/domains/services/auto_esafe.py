@@ -1,12 +1,12 @@
 
 import os
 import subprocess
+from datetime import datetime
 from typing import Optional
 
+from backend.core.logger import get_logger
 from backend.domains.batmon_schema import ServiceStatus
 from backend.domains.services.base_service import BaseService
-from datetime import datetime
-from backend.core.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -32,7 +32,7 @@ class AutoEsafeService(BaseService):
             # 로그 파일이 있는지 체크 
             last_log_file = self._get_last_log()
             if not last_log_file or not os.path.exists(last_log_file):
-                return self.error_status(f"생성되어야 할 로그파일을 찾지 못함"  )
+                return self.error_status(f"생성되어야 할 로그파일을 찾지 못함 : {last_log_file}"  )
             result = self.result_of_logfile(last_log_file)
             if result == "ERROR":
                 return self.error_status(f"로그파일에서 ERROR 발견: {last_log_file}")
@@ -110,7 +110,7 @@ if __name__ == "__main__":
     
     # 상태 체크
     status = service.check()
-    print(f"\nStatus Check Result:")
+    print("\nStatus Check Result:")
     print(f"Status: {status.status}")
     print(f"Message: {status.message}")
     print(f"Last Updated: {status.last_updated}")

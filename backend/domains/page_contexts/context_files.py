@@ -1,6 +1,8 @@
 import os
 from pathlib import Path
+
 from fastapi import HTTPException
+
 from backend.core.config import config
 from backend.core.logger import get_logger
 
@@ -24,13 +26,11 @@ def batmon_log(file_path):
         full_path = file_path
         with open(full_path, 'r', encoding='utf-8') as f:
             content = f.read()
-        file_type = "text"
     except UnicodeDecodeError:
         # UTF-8로 읽기 실패시 다른 인코딩 시도
         try:
             with open(full_path, 'r', encoding='cp949') as f:
                 content = f.read()
-            file_type = "text"
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"파일 인코딩 오류: {str(e)}")    
     return {
