@@ -55,10 +55,19 @@ if [ -f "dist/batmon.exe" ]; then
     if [ ${#ENV_ARGS[@]} -gt 0 ]; then
         echo "   설정파일이 복사되었습니다."
     fi
+    # ./dist안의 모든 파일들을 c:\batmon 폴더로 복사하는 스크립트 안내
+    echo "   다음 명령어로 파일을 복사할 수 있습니다:"
+    # c:/batmon이 없으면 생성, 삭제 후 생성
+    # 있으면 폴더 자체를 삭제
+    echo "   rm -rf c:\\batmon\\"
+    echo "   mkdir -p c:\\batmon\\"
+    echo "   cp -r ./dist/* c:\\batmon\\"
     echo ""
+    cp -r ./dist/* /c/batmon/
+    cp ./dist/.env* /c/batmon/ 2>/dev/null || true
     echo "✅ 아래와 같이 확인 바랍니다:"
-    echo "   - Test: ./dist/batmon.exe"
-    echo "   - Access: http://localhost:8002 (or port from .env.local)"
+    echo "   - Test: c:\\batmon\\batmon.exe or ./dist/batmon.exe"
+    echo "   - Access: http://localhost:8002 or port from .env.local"
 else
     echo "❌ FAILED: Build failed!"
     echo "   Check the error messages above"

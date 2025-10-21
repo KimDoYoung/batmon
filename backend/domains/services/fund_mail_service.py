@@ -3,9 +3,9 @@ import subprocess
 from datetime import datetime
 from typing import Optional
 
+from backend.core.logger import get_logger
 from backend.domains.batmon_schema import ServiceStatus
 from backend.domains.services.base_service import BaseService
-from backend.core.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -32,8 +32,8 @@ class FundMailService(BaseService):
             # 데이터 폴더 확인
             if not os.path.exists(self.data_dir):
                 return self.error_status(f"데이터 폴더가 존재하지 않습니다.: {self.data_dir}")
-            ymd = datetime.now().strftime('%Y_%m_%d')
-            today_data_folder = os.path.join(self.data_dir, f"{ymd}")
+            ymd = datetime.now().strftime('%Y%m%d')
+            today_data_folder = os.path.join(self.data_dir, f"{ymd}_r")
             if not os.path.exists(today_data_folder):
                 return self.error_status(f"오늘의 데이터 폴더가 존재하지 않습니다.: {today_data_folder}")
             
